@@ -243,6 +243,7 @@ if model_artifact is not None and df is not None:
     selected_student_index = None
 
     if data_source == "Select Existing Student":
+        
         # --- 1. Global Risk Calculation & List ---
         with st.spinner("Analyzing all students..."):
             try:
@@ -262,24 +263,16 @@ if model_artifact is not None and df is not None:
                 risk_df["Risk Score"] = risk_scores
                 risk_df = risk_df.sort_values(by="Risk Score", ascending=False)
                 
-                # --- 2. Sidebar Controls (Restored) ---
-                # Sync Logic: 
-                # We have 'selected_student_idx' in session_state.
-                # If sidebar changes, it updates session_state.
-                # If list selection changes, it updates session_state.
-
+                # --- Sidebar Sync Logic ---
                 if "selected_student_idx" not in st.session_state:
-                    st.session_state.selected_student_idx = risk_df.index[0]
-
-                # Helper to find integer position in list
+                     st.session_state.selected_student_idx = risk_df.index[0]
+                     
+                # Helper
                 def get_index_pos(val, options):
-                    try: 
-                        return list(options).index(val) 
-                    except: 
-                        return 0
+                    try: return list(options).index(val) 
+                    except: return 0
 
                 # Sidebar Selectbox
-                # We use a callback or just check value changes
                 sb_student = st.sidebar.selectbox(
                     "Select Student Index", 
                     options=risk_df.index,
@@ -292,20 +285,14 @@ if model_artifact is not None and df is not None:
                     st.session_state.selected_student_idx = sb_student
                     # No rerun needed here, the flow continues with the new value
 
-                # --- 3. Main List Display ---
+                # --- List Display ---
                 st.subheader("📋 Student Risk Overview")
-                st.markdown("Select a student below OR use the sidebar to view details.")
                 
                 display_cols = ["Risk Score"] + [c for c in risk_df.columns if c != "Risk Score"]
                 def color_risk(val):
                     color = 'red' if val > st.session_state.high_risk_threshold else ('green' if val < st.session_state.low_risk_threshold else 'orange')
                     return f'color: {color}'
 
-                # Create a pre-selection list if possible? 
-                # Streamlit's dataframe selection is UI -> Code. 
-                # Code -> UI selection is not fully supported in simple `st.dataframe` without experimental features or AGGrid.
-                # We will rely on UI selection overriding sidebar if clicked.
-                
                 event = st.dataframe(
                     risk_df[display_cols].style
                     .format({"Risk Score": "{:.1%}"})
@@ -327,13 +314,15 @@ if model_artifact is not None and df is not None:
                          st.session_state.selected_student_idx = list_selected_idx
                          st.rerun() # Rerun to sync sidebar
 
-                # --- 4. Final Selection Resolution ---
+                # --- Valid Selection? ---
                 selected_student_index = st.session_state.selected_student_idx
                 selected_student_data = X.loc[[selected_student_index]]
                 
             except Exception as e:
                 st.error(f"Global analysis/selection failed: {e}")
                 st.stop()
+        
+
     
     else:
         # --- Simulate New Student ---
@@ -406,7 +395,7 @@ if model_artifact is not None and df is not None:
     if classes is None or probs is None:
         st.error("Model prediction failed. Check logs.")
         st.stop()
-
+    
     # Find index of "Dropout" class
     dropout_idx = list(classes).index("Dropout") if "Dropout" in classes else 0
     # Handle prob shape (n_samples, n_classes) or (n_samples,) if binary
@@ -648,7 +637,7 @@ if model_artifact is not None and df is not None:
 
 else:
     st.warning("Please ensure the model is trained and data is available.")
-
+    
 if __name__ == "__main__":
     print("WARNING: You are running this script directly with Python.")
     print("Please run this app using: streamlit run predictive_model/dashboard2.py")
