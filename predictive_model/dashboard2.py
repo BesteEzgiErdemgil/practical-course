@@ -216,6 +216,58 @@ if model_artifact is not None and df is not None:
     
     # --- Sidebar Filters ---
     st.sidebar.subheader("Filter Students")
+
+    # --- Global Risk Calculation (New Feature) ---
+    with st.spinner("Analyzing all students..."):
+        try:
+            # 1. Transform all data
+            X_pre = preprocessor.transform(X).astype(float)
+            
+            # 2. Batch Prediction
+            all_probs = model.predict_proba(X_pre)
+            all_classes = label_encoder.classes_
+            
+            # 3. Identify Dropout Index
+            d_idx = list(all_classes).index("Dropout") if "Dropout" in all_classes else 0
+            
+            # 4. Extract Risk Scores
+            if all_probs.ndim == 1:
+                # Binary special case
+                p_1 = all_probs
+                risk_scores = p_1 if all_classes[1] == "Dropout" else (1 - p_1)
+            else:
+                risk_scores = all_probs[:, d_idx]
+                
+            # 5. Create Overview DataFrame
+            risk_df = X.copy()
+            risk_df["Risk Score"] = risk_scores
+            
+            # 6. Sort by Risk (High to Low)
+            risk_df = risk_df.sort_values(by="Risk Score", ascending=False)
+            
+            # 7. Display at Top
+            st.subheader("📋 Student Risk Overview")
+            
+            # Formatting for display
+            display_cols = ["Risk Score"] + [c for c in risk_df.columns if c != "Risk Score"]
+            
+            # Helper to format percentages
+            def color_risk(val):
+                color = 'red' if val > st.session_state.high_risk_threshold else ('green' if val < st.session_state.low_risk_threshold else 'orange')
+                return f'color: {color}'
+
+            st.dataframe(
+                risk_df[display_cols].style
+                .format({"Risk Score": "{:.1%}"})
+                .applymap(color_risk, subset=["Risk Score"]),
+                height=300,
+                use_container_width=True
+            )
+            
+        except Exception as e:
+            st.error(f"Global analysis failed: {e}")
+
+    # --- Sidebar Filters ---
     
     # Thresholds
     #!!! high_risk_threshold = st.sidebar.slider("High Risk Threshold", 0.0, 1.0, 0.7, 0.05)
