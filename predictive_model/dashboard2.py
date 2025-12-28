@@ -458,31 +458,55 @@ if model_artifact is not None and df is not None:
         # Row 1: Key Identifiers
         r1c1, r1c2 = st.columns(2)
         with r1c1:
-            st.info(f"**Course:**\n\n{d_course}")
+            st.markdown(f"<h4 style='color: #4A90E2;'>Course</h4>", unsafe_allow_html=True)
+            st.markdown(f"{d_course}")
         with r1c2:
-            st.info(f"**Application Mode:**\n\n{d_app_mode}")
+            st.markdown(f"<h4 style='color: #4A90E2;'>Application Mode</h4>", unsafe_allow_html=True)
+            st.markdown(f"{d_app_mode}")
             
         # Row 2: Demographics & Fees
         r2c1, r2c2 = st.columns(2)
         with r2c1:
-            st.metric("Age at Enrollment", int(get_val("Age_at_enrollment")) if get_val("Age_at_enrollment") != "N/A" else "N/A")
+            st.markdown(f"<h4 style='color: #4A90E2;'>Age at Enrollment</h4>", unsafe_allow_html=True)
+            age_val = int(get_val("Age_at_enrollment")) if get_val("Age_at_enrollment") != "N/A" else "N/A"
+            st.markdown(f"{age_val}")
         with r2c2:
+            st.markdown(f"<h4 style='color: #4A90E2;'>Tuition Fees</h4>", unsafe_allow_html=True)
             t_status = "Up to Date" if get_val("Tuition_fees_up_to_date") == 1 else "Overdue"
-            st.metric("Tuition Fees", t_status)
+            st.markdown(f"{t_status}")
 
         # Row 3: Academic Performance (1st Sem)
-        st.markdown("###### 1st Semester Performance")
+        st.markdown(f"<h5 style='color: #17A589;'>1st Semester Performance</h5>", unsafe_allow_html=True)
         m1, m2, m3 = st.columns(3)
-        m1.metric("Grade Avg", f"{get_val('Curricular_units_1st_sem_(grade)'):.2f}" if get_val('Curricular_units_1st_sem_(grade)') != "N/A" else "N/A")
-        m2.metric("Enrolled", int(get_val('Curricular_units_1st_sem_(enrolled)')) if get_val('Curricular_units_1st_sem_(enrolled)') != "N/A" else "N/A")
-        m3.metric("Approved", int(get_val('Curricular_units_1st_sem_(approved)')) if get_val('Curricular_units_1st_sem_(approved)') != "N/A" else "N/A")
+        with m1:
+            st.markdown(f"<h4 style='color: #4A90E2;'>Grade Avg</h4>", unsafe_allow_html=True)
+            val = f"{get_val('Curricular_units_1st_sem_(grade)'):.2f}" if get_val('Curricular_units_1st_sem_(grade)') != "N/A" else "N/A"
+            st.markdown(val)
+        with m2:
+            st.markdown(f"<h4 style='color: #4A90E2;'>Enrolled</h4>", unsafe_allow_html=True)
+            val = int(get_val('Curricular_units_1st_sem_(enrolled)')) if get_val('Curricular_units_1st_sem_(enrolled)') != "N/A" else "N/A"
+            st.markdown(val)
+        with m3:
+            st.markdown(f"<h4 style='color: #4A90E2;'>Approved</h4>", unsafe_allow_html=True)
+            val = int(get_val('Curricular_units_1st_sem_(approved)')) if get_val('Curricular_units_1st_sem_(approved)') != "N/A" else "N/A"
+            st.markdown(val)
 
         # Row 4: Academic Performance (2nd Sem)
-        st.markdown("###### 2nd Semester Performance")
+        st.markdown(f"<h5 style='color: #17A589;'>2nd Semester Performance</h5>", unsafe_allow_html=True)
         n1, n2, n3 = st.columns(3)
-        n1.metric("Grade Avg", f"{get_val('Curricular_units_2nd_sem_(grade)'):.2f}" if get_val('Curricular_units_2nd_sem_(grade)') != "N/A" else "N/A")
-        n2.metric("Enrolled", int(get_val('Curricular_units_2nd_sem_(enrolled)')) if get_val('Curricular_units_2nd_sem_(enrolled)') != "N/A" else "N/A")
-        n3.metric("Approved", int(get_val('Curricular_units_2nd_sem_(approved)')) if get_val('Curricular_units_2nd_sem_(approved)') != "N/A" else "N/A")
+
+        with n1:
+             st.markdown(f"<h4 style='color: #4A90E2;'>Grade Avg</h4>", unsafe_allow_html=True)
+             val = f"{get_val('Curricular_units_2nd_sem_(grade)'):.2f}" if get_val('Curricular_units_2nd_sem_(grade)') != "N/A" else "N/A"
+             st.markdown(val)
+        with n2:
+             st.markdown(f"<h4 style='color: #4A90E2;'>Enrolled</h4>", unsafe_allow_html=True)
+             val = int(get_val('Curricular_units_2nd_sem_(enrolled)')) if get_val('Curricular_units_2nd_sem_(enrolled)') != "N/A" else "N/A"
+             st.markdown(val)
+        with n3:
+             st.markdown(f"<h4 style='color: #4A90E2;'>Approved</h4>", unsafe_allow_html=True)
+             val = int(get_val('Curricular_units_2nd_sem_(approved)')) if get_val('Curricular_units_2nd_sem_(approved)') != "N/A" else "N/A"
+             st.markdown(val)
         
         st.markdown("---")
 
