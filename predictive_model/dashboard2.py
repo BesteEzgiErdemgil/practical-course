@@ -502,111 +502,152 @@ if model_artifact is not None and df is not None:
         st.markdown("---")
 
             
-            st.subheader("Model Explainability (SHAP)")
-            with st.spinner("Calculating SHAP values..."):
-                explainer, shap_vals, X_transformed, feature_names = calculate_shap_values(
-                    model_artifact, 
-                    X.sample(min(100, len(X)), random_state=42) if 'X' in locals() else None, 
-                    selected_student_data
-                )
-                
-                if isinstance(shap_vals, list):
-                    if len(shap_vals) > dropout_idx:
-                        sv = shap_vals[dropout_idx]
-                    else:
-                        sv = shap_vals[0]
+        st.subheader("Model Explainability (SHAP)")
+        with st.spinner("Calculating SHAP values..."):
+            # Pass the dictionary artifact to calculate_shap_values so it can handle the logic
+            # Use a sample of X for background
+            explainer, shap_vals, X_transformed, feature_names = calculate_shap_values(
+                model_artifact, 
+                X.sample(min(100, len(X)), random_state=42) if 'X' in locals() else None, 
+                selected_student_data
+            )
+            
+            # SHAP values for the specific class (Dropout)
+            if isinstance(shap_vals, list):
+                # Multi-class output from KernelExplainer
+                if len(shap_vals) > dropout_idx:
+                    sv = shap_vals[dropout_idx]
                 else:
-                    sv = shap_vals
-                    if probs.ndim == 1 and classes[1] != "Dropout":
-                         sv = -1 * sv
-                    
-                impact_values = np.array(sv)
-                if impact_values.ndim > 1:
-                    impact_values = impact_values.flatten()
+                    sv = shap_vals[0] # Fallback
+            else:
+                # Binary / single array
+                # For PyGAM binary, this usually explains P(y=1) (e.g., Graduate)
+                # If 'Dropout' is Class 0, we need to INVERT the SHAP values 
+                # to explain P(Dropout).
+                sv = shap_vals
+                if probs.ndim == 1 and classes[1] != "Dropout":
+                     # Model explains "Graduate". We want "Dropout".
+                     # Invert the impact.
+                     sv = -1 * sv
                 
-                if len(feature_names) != len(impact_values):
-                    st.warning(f"Shape mismatch (feats={len(feature_names)}, impact={len(impact_values)}). Showing raw impacts.")
-                    feature_names = [f"Feature {i}" for i in range(len(impact_values))]
+            # Force Plot / Bar Plot logic
+            st.markdown("**Why did the model make this prediction?**")
+            
+            # Ensure sv is 1D array of feature impacts
+            impact_values = np.array(sv)
+            if impact_values.ndim > 1:
+                impact_values = impact_values.flatten()
+            
+            # Check lengths
+            # For GAMs/OneHot, feature_names might be huge.
+            if len(feature_names) != len(impact_values):
+                # Re-align - this can happen if variable inputs
+                # Try to use just the top ones or handle mismatched shapes gracefully
+                st.warning(f"Shape mismatch (feats={len(feature_names)}, impact={len(impact_values)}). Showing raw impacts.")
+                feature_names = [f"Feature {i}" for i in range(len(impact_values))]
 
-                student_inputs = X_transformed[0] if X_transformed.ndim > 1 else X_transformed
+            # Retrieve the input values for this student
+            # X_transformed is returned by calculate_shap_values
+            # Ideally X_transformed corresponds to the X_test we passed (student_data)
+            # which is 1 row.
+            
+            student_inputs = X_transformed[0] if X_transformed.ndim > 1 else X_transformed
+            
+            # Filter Logic:
+            # We want to HIDE features that are:
+            # 1. Categorical (Course, App Mode)
+            # 2. AND have a value of 0 (False)
+            
+            filtered_data = []
+            
+            for i, name in enumerate(feature_names):
+                clean_name = clean_feature_name(name)
+                val = student_inputs[i] if i < len(student_inputs) else 0
+                impact = impact_values[i]
                 
-                filtered_data = []
-                
-                for i, name in enumerate(feature_names):
-                    clean_name = clean_feature_name(name)
-                    val = student_inputs[i] if i < len(student_inputs) else 0
-                    impact = impact_values[i]
-                    
-                    is_categorical_feature = ("Course" in clean_name or "Application mode" in clean_name or "Tuition" in clean_name)
-                    is_inactive = (abs(val) < 0.01)
-                    has_no_impact = (abs(impact) < 0.001)
+                # Check criteria
+                is_categorical_feature = ("Course" in clean_name or "Application mode" in clean_name or "Tuition" in clean_name)
+                is_inactive = (abs(val) < 0.01) # effectively 0
+                has_no_impact = (abs(impact) < 0.001) # effectively 0 impact
 
-                    if (is_categorical_feature and is_inactive) or has_no_impact:
-                        continue 
-                    
-                    filtered_data.append({"Feature": clean_name, "Impact": impact})
+                if (is_categorical_feature and is_inactive) or has_no_impact:
+                    continue # SKIP IT
                 
-                shap_df = pd.DataFrame(filtered_data)
+                filtered_data.append({"Feature": clean_name, "Impact": impact})
+            
+            # Create a DataFrame for plotting
+            shap_df = pd.DataFrame(filtered_data)
+            
+            if not shap_df.empty:
+                # Split into Risk (Positive) and Protective (Negative)
+                risk_df = shap_df[shap_df["Impact"] > 0].sort_values("Impact", ascending=True)
+                protective_df = shap_df[shap_df["Impact"] < 0].sort_values("Impact", ascending=False)
                 
+                # Unified Scale calculation
+                max_val = 0
                 if not shap_df.empty:
-                    risk_df_shap = shap_df[shap_df["Impact"] > 0].sort_values("Impact", ascending=True)
-                    protective_df = shap_df[shap_df["Impact"] < 0].sort_values("Impact", ascending=False)
-                    
-                    max_val = 0
-                    if not shap_df.empty:
-                        max_val = shap_df["Impact"].abs().max()
-                    limit = max_val * 1.1 if max_val > 0 else 0.1
-                    
-                    col_risk, col_prot = st.columns(2)
-                    
-                    def get_plot_height(n_bars):
-                        return max(n_bars * 0.5 + 1.0, 2.0)
-
-                    with col_risk:
-                        st.markdown("#### ⚠️ Risk Factors")
-                        if not risk_df_shap.empty:
-                            h_risk = get_plot_height(len(risk_df_shap))
-                            fig_r, ax_r = plt.subplots(figsize=(5, h_risk))
-                            ax_r.barh(risk_df_shap['Feature'], risk_df_shap['Impact'], color='red', height=0.6)
-                            ax_r.set_xlim([0, limit])
-                            ax_r.set_xlabel("Impact (Increases Risk)")
-                            ax_r.spines['right'].set_visible(False)
-                            ax_r.spines['top'].set_visible(False)
-                            st.pyplot(fig_r)
-                        else:
-                            st.info("No major risk factors found.")
-                            
-                    with col_prot:
-                        st.markdown("#### 🛡️ Protective Factors")
-                        if not protective_df.empty:
-                            h_prot = get_plot_height(len(protective_df))
-                            fig_p, ax_p = plt.subplots(figsize=(5, h_prot))
-                            ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
-                            ax_p.set_xlim([0, -limit]) 
-                            ax_p.set_xlabel("Impact (Reduces Risk)")
-                            ax_p.spines['left'].set_visible(False)
-                            ax_p.spines['right'].set_visible(False)
-                            ax_p.spines['top'].set_visible(False)
-                            st.pyplot(fig_p)
-                        else:
-                            st.info("No major protective factors found.")
-                else:
-                    st.info("No significant features influenced this prediction.")
+                    max_val = shap_df["Impact"].abs().max()
+                limit = max_val * 1.1 if max_val > 0 else 0.1
                 
-        with col2:
-            st.subheader("🤖 GenAI Insight")
+                # Create Columns - RISK ON LEFT, PROTECTIVE ON RIGHT
+                col_risk, col_prot = st.columns(2)
+                
+                # Function to calculate consistent height PER PLOT
+                # This ensures bars have same thickness but figure wraps tightly around them
+                def get_plot_height(n_bars):
+                    # 0.5 unit per bar + 1.0 buffer for labels
+                    return max(n_bars * 0.5 + 1.0, 2.0)
+
+                with col_risk:
+                    st.markdown("#### ⚠️ Risk Factors")
+                    if not risk_df.empty:
+                        # Calculate height specific to THIS plot's bar count
+                        h_risk = get_plot_height(len(risk_df))
+                        fig_r, ax_r = plt.subplots(figsize=(5, h_risk))
+                        
+                        ax_r.barh(risk_df['Feature'], risk_df['Impact'], color='red', height=0.6)
+                        ax_r.set_xlim([0, limit])
+                        ax_r.set_xlabel("Impact (Increases Risk)")
+                        ax_r.spines['right'].set_visible(False)
+                        ax_r.spines['top'].set_visible(False)
+                        st.pyplot(fig_r)
+                    else:
+                        st.info("No major risk factors found.")
+                        
+                with col_prot:
+                    st.markdown("#### 🛡️ Protective Factors")
+                    if not protective_df.empty:
+                        # Calculate height specific to THIS plot's bar count
+                        h_prot = get_plot_height(len(protective_df))
+                        fig_p, ax_p = plt.subplots(figsize=(5, h_prot))
+                        
+                        ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
+                        ax_p.set_xlim([0, -limit]) 
+                        ax_p.set_xlabel("Impact (Reduces Risk)")
+                        ax_p.spines['left'].set_visible(False)
+                        ax_p.spines['right'].set_visible(False)
+                        ax_p.spines['top'].set_visible(False)
+                        st.pyplot(fig_p)
+                    else:
+                        st.info("No major protective factors found.")
+            else:
+                st.info("No significant features influenced this prediction.")
             
-            top_features = list(zip(shap_df['Feature'], shap_df['Impact'])) if not shap_df.empty else []
-            
-            explanation = generate_genai_explanation(selected_student_index, dropout_prob, top_features)
-            
-            st.info(explanation)
-            
-            st.markdown("### Counselor Actions")
-            action = st.selectbox("Recommended Action", ["None", "Send Email", "Schedule Meeting", "Refer to Tutor"])
-            
-            if st.button("Confirm Action"):
-                st.success(f"Action '{action}' recorded for Student {selected_student_index}.")
+    with col2:
+        st.subheader("🤖 GenAI Insight")
+        
+        # Prepare data for GenAI
+        top_features = list(zip(shap_df['Feature'], shap_df['Impact'])) if not shap_df.empty else []
+        
+        explanation = generate_genai_explanation(selected_student_index, dropout_prob, top_features)
+        
+        st.info(explanation)
+        
+        st.markdown("### Counselor Actions")
+        action = st.selectbox("Recommended Action", ["None", "Send Email", "Schedule Meeting", "Refer to Tutor"])
+        
+        if st.button("Confirm Action"):
+            st.success(f"Action '{action}' recorded for Student {selected_student_index}.")
 
 
 else:
