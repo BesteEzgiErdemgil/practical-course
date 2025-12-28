@@ -486,6 +486,95 @@ if model_artifact is not None and df is not None:
         
         st.markdown("---")
 
+        st.markdown("---")
+
+        # --- Ceteris Paribus / What-If Analysis ---
+        with st.expander("🛠️ Ceteris Paribus Analysis (What-If?)"):
+            st.markdown("Simulate changes to this student's profile to see how the risk changes.")
+            
+            # Form for simulation
+            with st.form("what_if_form"):
+                cp_col1, cp_col2, cp_col3 = st.columns(3)
+                
+                with cp_col1:
+                    # Binary / Categorical features
+                    cp_tuition = st.checkbox("Tuition fees up to date", value=(get_val("Tuition_fees_up_to_date") == 1))
+                    
+                    # Application Mode
+                    cp_current_app_mode = get_val("Application_mode") if "Application_mode" in display_data.columns else get_val("Application mode")
+                    if str(cp_current_app_mode).replace('.','').isdigit():
+                         cp_current_app_mode_label = application_mode_map.get(int(cp_current_app_mode), "Unknown")
+                    else:
+                         cp_current_app_mode_label = cp_current_app_mode
+                         
+                    # Reverse map for selection (safely)
+                    app_mode_options = list(application_mode_map.values())
+                    try:
+                        app_mode_index = app_mode_options.index(cp_current_app_mode_label)
+                    except:
+                        app_mode_index = 0
+                        
+                    cp_app_mode_label = st.selectbox("Application Mode", options=app_mode_options, index=app_mode_index)
+
+                with cp_col2:
+                    # Numeric - Grades
+                    cp_grade1 = st.number_input("1st Sem Grade", min_value=0.0, max_value=20.0, value=float(get_val('Curricular_units_1st_sem_(grade)') if get_val('Curricular_units_1st_sem_(grade)') != "N/A" else 0.0))
+                    cp_grade2 = st.number_input("2nd Sem Grade", min_value=0.0, max_value=20.0, value=float(get_val('Curricular_units_2nd_sem_(grade)') if get_val('Curricular_units_2nd_sem_(grade)') != "N/A" else 0.0))
+
+                with cp_col3:
+                     # Numeric - Units Approved
+                    cp_app1 = st.number_input("1st Sem Approved", min_value=0, max_value=30, value=int(get_val('Curricular_units_1st_sem_(approved)') if get_val('Curricular_units_1st_sem_(approved)') != "N/A" else 0))
+                    cp_app2 = st.number_input("2nd Sem Approved", min_value=0, max_value=30, value=int(get_val('Curricular_units_2nd_sem_(approved)') if get_val('Curricular_units_2nd_sem_(approved)') != "N/A" else 0))
+                
+                submitted = st.form_submit_button("Simulate New Risk")
+                
+                if submitted:
+                    # 1. Create modified dataframe
+                    modified_student = selected_student_data.copy()
+                    
+                    # Update values
+                    modified_student["Tuition_fees_up_to_date"] = 1 if cp_tuition else 0
+                    
+                    # Map back App Mode label to ID
+                    app_mode_rev_map = {v: k for k, v in application_mode_map.items()}
+                    modified_student["Application_mode"] = app_mode_rev_map.get(cp_app_mode_label, 1) # Default to 1 if fail
+                    
+                    modified_student["Curricular_units_1st_sem_(grade)"] = cp_grade1
+                    modified_student["Curricular_units_2nd_sem_(grade)"] = cp_grade2
+                    modified_student["Curricular_units_1st_sem_(approved)"] = cp_app1
+                    modified_student["Curricular_units_2nd_sem_(approved)"] = cp_app2
+                    
+                    # 2. Predict
+                    try:
+                        ms_pre = preprocessor.transform(modified_student).astype(float)
+                        ms_probs = model.predict_proba(ms_pre)
+                        
+                        # Calculate Risk (Dropout Prob)
+                        if ms_probs.ndim == 1:
+                             new_risk = ms_probs[0] if classes[1] == "Dropout" else (1 - ms_probs[0])
+                        else:
+                             new_risk = ms_probs[0][dropout_idx]
+                             
+                        # 3. Display Results
+                        delta = new_risk - dropout_prob
+                        
+                        st.markdown("#### Simulation Results")
+                        res_col1, res_col2 = st.columns(2)
+                        
+                        with res_col1:
+                            st.metric("New Risk Score", f"{new_risk:.1%}", f"{delta:.1%}", delta_color="inverse")
+                            
+                        with res_col2:
+                            if new_risk < st.session_state.low_risk_threshold:
+                                st.success("Outcome: **SAFE**")
+                            elif new_risk > st.session_state.high_risk_threshold:
+                                st.error("Outcome: **HIGH RISK**")
+                            else:
+                                st.warning("Outcome: **MONITOR**")
+                                
+                    except Exception as e:
+                        st.error(f"Simulation failed: {e}")
+
             
         st.subheader("Model Explainability (SHAP)")
         with st.spinner("Calculating SHAP values..."):
