@@ -269,63 +269,84 @@ if model_artifact is not None and df is not None:
 
     # --- Sidebar Filters ---
     
-    # Thresholds
-    #!!! high_risk_threshold = st.sidebar.slider("High Risk Threshold", 0.0, 1.0, 0.7, 0.05)
-    #!!! low_risk_threshold = st.sidebar.slider("Safe Threshold", 0.0, 1.0, 0.3, 0.05)
+    # Data Source Selection (Logic Split)
+    # If "Simulate", we skip the list selection logic.
+    # If "Existing", we use the list list selection.
     
-    # Thresholds (controlled via session_state)
-    high_risk_threshold = st.sidebar.slider(
-        "High Risk Threshold",
-        0.0, 1.0,
-        st.session_state.high_risk_threshold,
-        0.05
-    )
-
-    low_risk_threshold = st.sidebar.slider(
-        "Safe Threshold",
-        0.0, 1.0,
-        st.session_state.low_risk_threshold,
-        0.05
-    )
-
-    # -------------------------------
-    # AI Recommendation Modal
-    # -------------------------------
-    if st.session_state.show_threshold_modal:
-        with st.modal("🤖 AI Recommendation"):
-            st.markdown("""
-            **Recommended Thresholds based on dataset distribution:**
-
-            - 🔴 **High Risk ≥ 0.70**
-            - 🟡 **Monitor: 0.30 – 0.70**
-            - 🟢 **Safe ≤ 0.30**
-
-            These thresholds balance false positives and false negatives
-            and work best for the current dataset.
-            """)
-
-            if st.button("✅ Apply Recommended Thresholds"):
-                st.session_state.high_risk_threshold = 0.7
-                st.session_state.low_risk_threshold = 0.3
-                st.session_state.show_threshold_modal = False
-                st.toast("Thresholds applied successfully")
-
-            if st.button("❌ Close"):
-                st.session_state.show_threshold_modal = False
-
-
-    # Data Source Selection
     data_source = st.sidebar.radio("Data Source", ["Select Existing Student", "Simulate New Student"])
+    
+    selected_student_data = None
+    selected_student_index = None
 
     if data_source == "Select Existing Student":
-        # Student Selector
-        student_index = st.sidebar.selectbox("Select Student Index", X.index)
-        # Get selected student data
-        student_data = X.loc[[student_index]]
+        # --- Global Risk Calculation & List ---
+        with st.spinner("Analyzing all students..."):
+            try:
+                # 1. Transform all data
+                X_pre = preprocessor.transform(X).astype(float)
+                
+                # 2. Batch Prediction
+                all_probs = model.predict_proba(X_pre)
+                all_classes = label_encoder.classes_
+                
+                # 3. Identify Dropout Index
+                d_idx = list(all_classes).index("Dropout") if "Dropout" in all_classes else 0
+                
+                # 4. Extract Risk Scores
+                if all_probs.ndim == 1:
+                    p_1 = all_probs
+                    risk_scores = p_1 if all_classes[1] == "Dropout" else (1 - p_1)
+                else:
+                    risk_scores = all_probs[:, d_idx]
+                    
+                # 5. Create Overview DataFrame
+                risk_df = X.copy()
+                risk_df["Risk Score"] = risk_scores
+                
+                # 6. Sort by Risk (High to Low)
+                risk_df = risk_df.sort_values(by="Risk Score", ascending=False)
+                
+                # 7. Display at Top
+                st.subheader("📋 Student Risk Overview")
+                st.markdown("Select a student from the list below to view their detailed profile.")
+                
+                # Formatting for display
+                display_cols = ["Risk Score"] + [c for c in risk_df.columns if c != "Risk Score"]
+                
+                # Helper to format percentages
+                def color_risk(val):
+                    color = 'red' if val > st.session_state.high_risk_threshold else ('green' if val < st.session_state.low_risk_threshold else 'orange')
+                    return f'color: {color}'
+
+                # INTERACTIVE DATAFRAME
+                event = st.dataframe(
+                    risk_df[display_cols].style
+                    .format({"Risk Score": "{:.1%}"})
+                    .applymap(color_risk, subset=["Risk Score"]),
+                    height=400,
+                    use_container_width=True,
+                    on_select="rerun",
+                    selection_mode="single-row"
+                )
+                
+                # Check Selection
+                if len(event.selection.rows) > 0:
+                    selected_row_idx = event.selection.rows[0]
+                    # Get index from the SORTED dataframe using iloc
+                    selected_student_index = risk_df.index[selected_row_idx]
+                    selected_student_data = X.loc[[selected_student_index]]
+                else:
+                    st.info("👆 Please select a student from the list above to see details.")
+                    st.stop() # Stop rendering the rest
+                
+            except Exception as e:
+                st.error(f"Global analysis/selection failed: {e}")
+                st.stop()
     
     else:
+        # --- Simulate New Student ---
         st.sidebar.markdown("### Simulate Student")
-        student_index = "Simulated_User"
+        selected_student_index = "Simulated_User"
         
         # --- INPUT FORM ---
         # 1. Application Mode (Reverse Map for UI)
@@ -362,11 +383,6 @@ if model_artifact is not None and df is not None:
         s_u2_grade = st.sidebar.number_input("Grade Avg (2nd)", 0.0, 20.0, 14.0)
 
         # Construct DataFrame with EXACT columns as X
-        # We need to match the Training Data Columns exactly
-        # Columns: ['Application mode', 'Course', 'Tuition fees up to date', 'Age at enrollment', 
-        #           'Curricular units 1st sem (enrolled)', 'Curricular units 1st sem (approved)', 'Curricular units 1st sem (grade)', 
-        #           'Curricular units 2nd sem (enrolled)', 'Curricular units 2nd sem (approved)', 'Curricular units 2nd sem (grade)']
-        
         sim_data = {
             'Application_mode': [s_app_mode],
             'Course': [s_course],
@@ -379,243 +395,188 @@ if model_artifact is not None and df is not None:
             'Curricular_units_2nd_sem_(approved)': [s_u2_approved],
             'Curricular_units_2nd_sem_(grade)': [s_u2_grade]
         }
-        student_data = pd.DataFrame(sim_data) # This will be used by the rest of the app
+        selected_student_data = pd.DataFrame(sim_data)
+
     
-    # Predict
-    # GAM needs preprocessed data
-    classes = None  # Safe initialization
-    probs = None
-
-    try:
-        student_data_pre = preprocessor.transform(student_data).astype(float)
-        probs = model.predict_proba(student_data_pre)
-        classes = label_encoder.classes_
-    except Exception as e:
-        st.error(f"Prediction Error: {e}")
-        st.stop()
-    
-    if classes is None or probs is None:
-        st.error("Model prediction failed. Check logs.")
-        st.stop()
-
-    # Find index of "Dropout" class
-    dropout_idx = list(classes).index("Dropout") if "Dropout" in classes else 0
-    # Handle prob shape (n_samples, n_classes) or (n_samples,) if binary
-    if probs.ndim == 1:
-        # Binary case for pygam often returns just P(y=1)
-        # We need to check label encoder to see which is 1
-        # Typically 1 is the second class in classes_
-        p_1 = probs[0]
-        dropout_prob = p_1 if classes[1] == "Dropout" else (1 - p_1)
-    else:
-        dropout_prob = probs[0][dropout_idx]
-    
-    # Display Status
-    st.sidebar.markdown("### Prediction Status")
-    if dropout_prob >= high_risk_threshold:
-        st.sidebar.error(f"🚨 HIGH RISK ({dropout_prob:.1%})")
-    elif dropout_prob <= low_risk_threshold:
-        st.sidebar.success(f"✅ SAFE ({dropout_prob:.1%})")
-    else:
-        st.sidebar.warning(f"⚠️ MONITOR ({dropout_prob:.1%})")
+    # --- Prediction & Display (Common Logic) ---
+    if selected_student_data is not None:
         
-    # --- Main Content ---
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Student Profile")
-
-        # --- Representative Data Check ---
-        # Get raw values for the selected student
-        sel_course = student_data["Course"].iloc[0] if "Course" in student_data.columns else None
+        # Predict
+        try:
+            student_data_pre = preprocessor.transform(selected_student_data).astype(float)
+            probs = model.predict_proba(student_data_pre)
+            classes = label_encoder.classes_
+        except Exception as e:
+            st.error(f"Prediction Error: {e}")
+            st.stop()
         
-        # Handle App Mode name variation
-        app_mode_col = "Application_mode" if "Application_mode" in student_data.columns else ("Application mode" if "Application mode" in student_data.columns else None)
-        sel_app_mode = student_data[app_mode_col].iloc[0] if app_mode_col else None
+        if classes is None or probs is None:
+            st.error("Model prediction failed. Check logs.")
+            st.stop()
 
-        # Check counts in the FULL dataset (X)
-        if sel_course is not None:
-            course_count = X[X["Course"] == sel_course].shape[0]
-            if course_count < 50:
-                st.warning(f"⚠️ Low Sample Size: This Course has only {course_count} students. Predictions may be less reliable.")
-
-        if sel_app_mode is not None:
-            app_count = X[X[app_mode_col] == sel_app_mode].shape[0]
-            if app_count < 50:
-                st.warning(f"⚠️ Low Sample Size: This Application Mode has only {app_count} students. Predictions may be less reliable.")
-
+        # Find index of "Dropout" class
+        dropout_idx = list(classes).index("Dropout") if "Dropout" in classes else 0
         
-        # Create a display copy to show readable labels
-        display_data = student_data.copy()
-        if "Application_mode" in display_data.columns:
-             # Check if numeric to map, handle strings if already mapped
-             display_data["Application_mode"] = display_data["Application_mode"].apply(
-                 lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-             )
-        # Fallback if column name has spaces
-        elif "Application mode" in display_data.columns:
-             display_data["Application mode"] = display_data["Application mode"].apply(
-                 lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-             )
+        if probs.ndim == 1:
+            p_1 = probs[0]
+            dropout_prob = p_1 if classes[1] == "Dropout" else (1 - p_1)
+        else:
+            dropout_prob = probs[0][dropout_idx]
         
-        # Course Map
-        if "Course" in display_data.columns:
-             display_data["Course"] = display_data["Course"].apply(
-                 lambda x: course_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-             )
-
-        st.dataframe(display_data)
-        
-        st.subheader("Model Explainability (SHAP)")
-        with st.spinner("Calculating SHAP values..."):
-            # Pass the dictionary artifact to calculate_shap_values so it can handle the logic
-            # Use a sample of X for background
-            explainer, shap_vals, X_transformed, feature_names = calculate_shap_values(
-                model_artifact, 
-                X.sample(min(100, len(X)), random_state=42), 
-                student_data
-            )
+        # Display Status (Sidebar)
+        st.sidebar.markdown("### Prediction Status")
+        if dropout_prob >= high_risk_threshold:
+            st.sidebar.error(f"🚨 HIGH RISK ({dropout_prob:.1%})")
+        elif dropout_prob <= low_risk_threshold:
+            st.sidebar.success(f"✅ SAFE ({dropout_prob:.1%})")
+        else:
+            st.sidebar.warning(f"⚠️ MONITOR ({dropout_prob:.1%})")
             
-            # SHAP values for the specific class (Dropout)
-            if isinstance(shap_vals, list):
-                # Multi-class output from KernelExplainer
-                if len(shap_vals) > dropout_idx:
-                    sv = shap_vals[dropout_idx]
+        # --- Main Content Details ---
+        
+        st.markdown("---") # Separator between list and details
+
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.subheader(f"Student Profile (ID: {selected_student_index})")
+
+            # --- Representative Data Check ---
+            sel_course = selected_student_data["Course"].iloc[0] if "Course" in selected_student_data.columns else None
+            
+            app_mode_col = "Application_mode" if "Application_mode" in selected_student_data.columns else ("Application mode" if "Application mode" in selected_student_data.columns else None)
+            sel_app_mode = selected_student_data[app_mode_col].iloc[0] if app_mode_col else None
+
+            if sel_course is not None and data_source != "Simulate New Student":
+                 # Only check existing data counts if we have X loaded
+                 course_count = X[X["Course"] == sel_course].shape[0] if 'X' in locals() else 50
+                 if course_count < 50:
+                     st.warning(f"⚠️ Low Sample Size: This Course has only {course_count} students. Predictions may be less reliable.")
+
+            # Create a display copy
+            display_data = selected_student_data.copy()
+            if "Application_mode" in display_data.columns:
+                 display_data["Application_mode"] = display_data["Application_mode"].apply(
+                     lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
+                 )
+            elif "Application mode" in display_data.columns:
+                 display_data["Application mode"] = display_data["Application mode"].apply(
+                     lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
+                 )
+            
+            if "Course" in display_data.columns:
+                 display_data["Course"] = display_data["Course"].apply(
+                     lambda x: course_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
+                 )
+
+            st.dataframe(display_data)
+            
+            st.subheader("Model Explainability (SHAP)")
+            with st.spinner("Calculating SHAP values..."):
+                explainer, shap_vals, X_transformed, feature_names = calculate_shap_values(
+                    model_artifact, 
+                    X.sample(min(100, len(X)), random_state=42) if 'X' in locals() else None, 
+                    selected_student_data
+                )
+                
+                if isinstance(shap_vals, list):
+                    if len(shap_vals) > dropout_idx:
+                        sv = shap_vals[dropout_idx]
+                    else:
+                        sv = shap_vals[0]
                 else:
-                    sv = shap_vals[0] # Fallback
-            else:
-                # Binary / single array
-                # For PyGAM binary, this usually explains P(y=1) (e.g., Graduate)
-                # If 'Dropout' is Class 0, we need to INVERT the SHAP values 
-                # to explain P(Dropout).
-                sv = shap_vals
-                if probs.ndim == 1 and classes[1] != "Dropout":
-                     # Model explains "Graduate". We want "Dropout".
-                     # Invert the impact.
-                     sv = -1 * sv
+                    sv = shap_vals
+                    if probs.ndim == 1 and classes[1] != "Dropout":
+                         sv = -1 * sv
+                    
+                impact_values = np.array(sv)
+                if impact_values.ndim > 1:
+                    impact_values = impact_values.flatten()
                 
-            # Force Plot / Bar Plot logic
-            st.markdown("**Why did the model make this prediction?**")
-            
-            # Ensure sv is 1D array of feature impacts
-            impact_values = np.array(sv)
-            if impact_values.ndim > 1:
-                impact_values = impact_values.flatten()
-            
-            # Check lengths
-            # For GAMs/OneHot, feature_names might be huge.
-            if len(feature_names) != len(impact_values):
-                # Re-align - this can happen if variable inputs
-                # Try to use just the top ones or handle mismatched shapes gracefully
-                st.warning(f"Shape mismatch (feats={len(feature_names)}, impact={len(impact_values)}). Showing raw impacts.")
-                feature_names = [f"Feature {i}" for i in range(len(impact_values))]
+                if len(feature_names) != len(impact_values):
+                    st.warning(f"Shape mismatch (feats={len(feature_names)}, impact={len(impact_values)}). Showing raw impacts.")
+                    feature_names = [f"Feature {i}" for i in range(len(impact_values))]
 
-            # Retrieve the input values for this student
-            # X_transformed is returned by calculate_shap_values
-            # Ideally X_transformed corresponds to the X_test we passed (student_data)
-            # which is 1 row.
-            
-            student_inputs = X_transformed[0] if X_transformed.ndim > 1 else X_transformed
-            
-            # Filter Logic:
-            # We want to HIDE features that are:
-            # 1. Categorical (Course, App Mode)
-            # 2. AND have a value of 0 (False)
-            
-            filtered_data = []
-            
-            for i, name in enumerate(feature_names):
-                clean_name = clean_feature_name(name)
-                val = student_inputs[i] if i < len(student_inputs) else 0
-                impact = impact_values[i]
+                student_inputs = X_transformed[0] if X_transformed.ndim > 1 else X_transformed
                 
-                # Check criteria
-                is_categorical_feature = ("Course" in clean_name or "Application mode" in clean_name or "Tuition" in clean_name)
-                is_inactive = (abs(val) < 0.01) # effectively 0
-                has_no_impact = (abs(impact) < 0.001) # effectively 0 impact
+                filtered_data = []
+                
+                for i, name in enumerate(feature_names):
+                    clean_name = clean_feature_name(name)
+                    val = student_inputs[i] if i < len(student_inputs) else 0
+                    impact = impact_values[i]
+                    
+                    is_categorical_feature = ("Course" in clean_name or "Application mode" in clean_name or "Tuition" in clean_name)
+                    is_inactive = (abs(val) < 0.01)
+                    has_no_impact = (abs(impact) < 0.001)
 
-                if (is_categorical_feature and is_inactive) or has_no_impact:
-                    continue # SKIP IT
+                    if (is_categorical_feature and is_inactive) or has_no_impact:
+                        continue 
+                    
+                    filtered_data.append({"Feature": clean_name, "Impact": impact})
                 
-                filtered_data.append({"Feature": clean_name, "Impact": impact})
-            
-            # Create a DataFrame for plotting
-            shap_df = pd.DataFrame(filtered_data)
-            
-            if not shap_df.empty:
-                # Split into Risk (Positive) and Protective (Negative)
-                risk_df = shap_df[shap_df["Impact"] > 0].sort_values("Impact", ascending=True)
-                protective_df = shap_df[shap_df["Impact"] < 0].sort_values("Impact", ascending=False)
+                shap_df = pd.DataFrame(filtered_data)
                 
-                # Unified Scale calculation
-                max_val = 0
                 if not shap_df.empty:
-                    max_val = shap_df["Impact"].abs().max()
-                limit = max_val * 1.1 if max_val > 0 else 0.1
-                
-                # Create Columns - RISK ON LEFT, PROTECTIVE ON RIGHT
-                col_risk, col_prot = st.columns(2)
-                
-                # Create Columns - RISK ON LEFT, PROTECTIVE ON RIGHT
-                col_risk, col_prot = st.columns(2)
-                
-                # Function to calculate consistent height PER PLOT
-                # This ensures bars have same thickness but figure wraps tightly around them
-                def get_plot_height(n_bars):
-                    # 0.5 unit per bar + 1.0 buffer for labels
-                    return max(n_bars * 0.5 + 1.0, 2.0)
+                    risk_df_shap = shap_df[shap_df["Impact"] > 0].sort_values("Impact", ascending=True)
+                    protective_df = shap_df[shap_df["Impact"] < 0].sort_values("Impact", ascending=False)
+                    
+                    max_val = 0
+                    if not shap_df.empty:
+                        max_val = shap_df["Impact"].abs().max()
+                    limit = max_val * 1.1 if max_val > 0 else 0.1
+                    
+                    col_risk, col_prot = st.columns(2)
+                    
+                    def get_plot_height(n_bars):
+                        return max(n_bars * 0.5 + 1.0, 2.0)
 
-                with col_risk:
-                    st.markdown("#### ⚠️ Risk Factors")
-                    if not risk_df.empty:
-                        # Calculate height specific to THIS plot's bar count
-                        h_risk = get_plot_height(len(risk_df))
-                        fig_r, ax_r = plt.subplots(figsize=(5, h_risk))
-                        
-                        ax_r.barh(risk_df['Feature'], risk_df['Impact'], color='red', height=0.6)
-                        ax_r.set_xlim([0, limit])
-                        ax_r.set_xlabel("Impact (Increases Risk)")
-                        ax_r.spines['right'].set_visible(False)
-                        ax_r.spines['top'].set_visible(False)
-                        st.pyplot(fig_r)
-                    else:
-                        st.info("No major risk factors found.")
-                        
-                with col_prot:
-                    st.markdown("#### 🛡️ Protective Factors")
-                    if not protective_df.empty:
-                        # Calculate height specific to THIS plot's bar count
-                        h_prot = get_plot_height(len(protective_df))
-                        fig_p, ax_p = plt.subplots(figsize=(5, h_prot))
-                        
-                        ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
-                        ax_p.set_xlim([0, -limit]) 
-                        ax_p.set_xlabel("Impact (Reduces Risk)")
-                        ax_p.spines['left'].set_visible(False)
-                        ax_p.spines['right'].set_visible(False)
-                        ax_p.spines['top'].set_visible(False)
-                        st.pyplot(fig_p)
-                    else:
-                        st.info("No major protective factors found.")
-            else:
-                st.info("No significant features influenced this prediction.")
+                    with col_risk:
+                        st.markdown("#### ⚠️ Risk Factors")
+                        if not risk_df_shap.empty:
+                            h_risk = get_plot_height(len(risk_df_shap))
+                            fig_r, ax_r = plt.subplots(figsize=(5, h_risk))
+                            ax_r.barh(risk_df_shap['Feature'], risk_df_shap['Impact'], color='red', height=0.6)
+                            ax_r.set_xlim([0, limit])
+                            ax_r.set_xlabel("Impact (Increases Risk)")
+                            ax_r.spines['right'].set_visible(False)
+                            ax_r.spines['top'].set_visible(False)
+                            st.pyplot(fig_r)
+                        else:
+                            st.info("No major risk factors found.")
+                            
+                    with col_prot:
+                        st.markdown("#### 🛡️ Protective Factors")
+                        if not protective_df.empty:
+                            h_prot = get_plot_height(len(protective_df))
+                            fig_p, ax_p = plt.subplots(figsize=(5, h_prot))
+                            ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
+                            ax_p.set_xlim([0, -limit]) 
+                            ax_p.set_xlabel("Impact (Reduces Risk)")
+                            ax_p.spines['left'].set_visible(False)
+                            ax_p.spines['right'].set_visible(False)
+                            ax_p.spines['top'].set_visible(False)
+                            st.pyplot(fig_p)
+                        else:
+                            st.info("No major protective factors found.")
+                else:
+                    st.info("No significant features influenced this prediction.")
+                
+        with col2:
+            st.subheader("🤖 GenAI Insight")
             
-    with col2:
-        st.subheader("🤖 GenAI Insight")
-        
-        # Prepare data for GenAI
-        top_features = list(zip(shap_df['Feature'], shap_df['Impact']))
-        
-        explanation = generate_genai_explanation(student_index, dropout_prob, top_features)
-        
-        st.info(explanation)
-        
-        st.markdown("### Counselor Actions")
-        action = st.selectbox("Recommended Action", ["None", "Send Email", "Schedule Meeting", "Refer to Tutor"])
-        
-        if st.button("Confirm Action"):
-            st.success(f"Action '{action}' recorded for Student {student_index}.")
+            top_features = list(zip(shap_df['Feature'], shap_df['Impact'])) if not shap_df.empty else []
+            
+            explanation = generate_genai_explanation(selected_student_index, dropout_prob, top_features)
+            
+            st.info(explanation)
+            
+            st.markdown("### Counselor Actions")
+            action = st.selectbox("Recommended Action", ["None", "Send Email", "Schedule Meeting", "Refer to Tutor"])
+            
+            if st.button("Confirm Action"):
+                st.success(f"Action '{action}' recorded for Student {selected_student_index}.")
+
 
 else:
     st.warning("Please ensure the model is trained and data is available.")
