@@ -448,28 +448,59 @@ if model_artifact is not None and df is not None:
             sel_app_mode = selected_student_data[app_mode_col].iloc[0] if app_mode_col else None
 
             if sel_course is not None and data_source != "Simulate New Student":
-                 # Only check existing data counts if we have X loaded
+                # Only check existing data counts if we have X loaded
                  course_count = X[X["Course"] == sel_course].shape[0] if 'X' in locals() else 50
                  if course_count < 50:
                      st.warning(f"⚠️ Low Sample Size: This Course has only {course_count} students. Predictions may be less reliable.")
 
-            # Create a display copy
-            display_data = selected_student_data.copy()
-            if "Application_mode" in display_data.columns:
-                 display_data["Application_mode"] = display_data["Application_mode"].apply(
-                     lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-                 )
-            elif "Application mode" in display_data.columns:
-                 display_data["Application mode"] = display_data["Application mode"].apply(
-                     lambda x: application_mode_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-                 )
-            
-            if "Course" in display_data.columns:
-                 display_data["Course"] = display_data["Course"].apply(
-                     lambda x: course_map.get(int(x), x) if str(x).replace('.','').isdigit() else x
-                 )
+            # Create a display copy to show readable labels
+        display_data = selected_student_data.copy()
+        
+        # Helper to safely get value
+        def get_val(col):
+            return display_data[col].iloc[0] if col in display_data.columns else "N/A"
 
-            st.dataframe(display_data)
+        # Map values for display
+        d_app_mode = get_val("Application_mode") if "Application_mode" in display_data.columns else get_val("Application mode")
+        if str(d_app_mode).replace('.','').isdigit():
+             d_app_mode = application_mode_map.get(int(d_app_mode), d_app_mode)
+             
+        d_course = get_val("Course")
+        if str(d_course).replace('.','').isdigit():
+             d_course = course_map.get(int(d_course), d_course)
+
+        # --- NEW CARD LAYOUT ---
+        # Row 1: Key Identifiers
+        r1c1, r1c2 = st.columns(2)
+        with r1c1:
+            st.info(f"**Course:**\n\n{d_course}")
+        with r1c2:
+            st.info(f"**Application Mode:**\n\n{d_app_mode}")
+            
+        # Row 2: Demographics & Fees
+        r2c1, r2c2 = st.columns(2)
+        with r2c1:
+            st.metric("Age at Enrollment", int(get_val("Age_at_enrollment")) if get_val("Age_at_enrollment") != "N/A" else "N/A")
+        with r2c2:
+            t_status = "Up to Date" if get_val("Tuition_fees_up_to_date") == 1 else "Overdue"
+            st.metric("Tuition Fees", t_status)
+
+        # Row 3: Academic Performance (1st Sem)
+        st.markdown("###### 1st Semester Performance")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Grade Avg", f"{get_val('Curricular_units_1st_sem_(grade)'):.2f}" if get_val('Curricular_units_1st_sem_(grade)') != "N/A" else "N/A")
+        m2.metric("Enrolled", int(get_val('Curricular_units_1st_sem_(enrolled)')) if get_val('Curricular_units_1st_sem_(enrolled)') != "N/A" else "N/A")
+        m3.metric("Approved", int(get_val('Curricular_units_1st_sem_(approved)')) if get_val('Curricular_units_1st_sem_(approved)') != "N/A" else "N/A")
+
+        # Row 4: Academic Performance (2nd Sem)
+        st.markdown("###### 2nd Semester Performance")
+        n1, n2, n3 = st.columns(3)
+        n1.metric("Grade Avg", f"{get_val('Curricular_units_2nd_sem_(grade)'):.2f}" if get_val('Curricular_units_2nd_sem_(grade)') != "N/A" else "N/A")
+        n2.metric("Enrolled", int(get_val('Curricular_units_2nd_sem_(enrolled)')) if get_val('Curricular_units_2nd_sem_(enrolled)') != "N/A" else "N/A")
+        n3.metric("Approved", int(get_val('Curricular_units_2nd_sem_(approved)')) if get_val('Curricular_units_2nd_sem_(approved)') != "N/A" else "N/A")
+        
+        st.markdown("---")
+
             
             st.subheader("Model Explainability (SHAP)")
             with st.spinner("Calculating SHAP values..."):
