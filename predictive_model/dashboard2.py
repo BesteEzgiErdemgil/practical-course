@@ -59,7 +59,7 @@ course_map = {
 st.set_page_config(page_title="Student Success Dashboard (v2 - 5Fold)", layout="wide")
 
 # Title
-st.title("🎓 Student Success & Dropout Risk Dashboard")
+st.title("🎓 Student Success & Dropout Risk Dashboard (v2.1 - Tracker Active)")
 st.markdown("---")
 
 # Sidebar
@@ -212,6 +212,36 @@ if model_artifact is not None and df is not None:
     model = model_artifact["model"]
     preprocessor = model_artifact["preprocess"]
     label_encoder = model_artifact["label_encoder"]
+
+    # --- TRACKING DATA HANDLING ---
+    tracking_file = os.path.join(os.path.dirname(__file__), "tracking_data.csv")
+    
+    def load_tracking_data():
+        if os.path.exists(tracking_file):
+            # Load with index as is, then ensure type consistency
+            # We treat index as int (Student_Index)
+            try:
+                td = pd.read_csv(tracking_file, index_col="Student_Index")
+                return td
+            except Exception:
+                return pd.DataFrame(columns=["Is_Tracked", "Notes"])
+        else:
+            return pd.DataFrame(columns=["Is_Tracked", "Notes"])
+
+    def save_tracking_data(index, is_tracked, notes):
+        # Load current
+        td = load_tracking_data()
+        
+        # Update
+        td.loc[index, "Is_Tracked"] = 1 if is_tracked else 0
+        td.loc[index, "Notes"] = notes
+        
+        td.index.name = "Student_Index"
+        td.to_csv(tracking_file)
+        return td
+
+    # Load initially
+    tracking_df = load_tracking_data()
 
     # Target Logic
     target_col = "Target"
@@ -468,25 +498,61 @@ if model_artifact is not None and df is not None:
                 # --- List Display ---
                 st.subheader("📋 Student Risk Overview")
                 
+                # --- MERGE TRACKING DATA ---
+                # We want "Is Tracked" (0/1) and "Tracking Action" (Text)
+                
+                # 1. Join tracking data
+                # Ensure indices match types (heuristic: convert to common type if needed, but usually Int64)
+                # Left join risk_df with tracking_df
+                
+                merged_df = risk_df.join(tracking_df, how="left")
+                
+                # 2. Process columns
+                merged_df["Is Tracked"] = merged_df["Is_Tracked"].fillna(0).astype(int)
+                merged_df["Tracking Action"] = merged_df["Notes"].fillna("")
+                
                 # --- Column Visibility ---
-                all_cols = list(risk_df.columns)
-                default_cols = ["Risk Score"] + [c for c in all_cols if c != "Risk Score"]
-                # Limit default columns if too many? For now show all as requested, but give control.
+                all_cols = list(merged_df.columns)
+                # Default: Risk Score first, then Tracked info, then rest
+                # Filter out raw 'Is_Tracked' and 'Notes' from display if they exist
+                cols_to_hide_raw = ["Is_Tracked", "Notes"]
+                display_candidates = [c for c in all_cols if c not in cols_to_hide_raw]
+                
+                default_cols = ["Risk Score", "Is Tracked", "Tracking Action"] + [c for c in display_candidates if c not in ["Risk Score", "Is Tracked", "Tracking Action"]]
                 
                 with st.expander("👁️ Show/Hide Columns"):
-                    display_cols = st.multiselect("Select Columns to Display", options=all_cols, default=default_cols)
+                    display_cols = st.multiselect("Select Columns to Display", options=display_candidates, default=default_cols)
                 
                 if not display_cols: 
                     st.warning("Please select at least one column to display.")
                     display_cols = ["Risk Score"]
-                def color_risk(val):
-                    color = 'red' if val > st.session_state.high_risk_threshold else ('green' if val < st.session_state.low_risk_threshold else 'orange')
-                    return f'color: {color}'
 
+                def color_rows(row):
+                    # Default Risk Colors
+                    val = row["Risk Score"]
+                    styles = []
+                    
+                    # Highlight tracked rows
+                    bg_color = ''
+                    if row["Is Tracked"] == 1:
+                         bg_color = 'background-color: #E6F3FF;' # Light Blue
+                    
+                    # Risk Text Color
+                    risk_color = 'red' if val > st.session_state.high_risk_threshold else ('green' if val < st.session_state.low_risk_threshold else 'orange')
+                    
+                    for col in row.index:
+                        style = bg_color
+                        if col == "Risk Score":
+                            style += f' color: {risk_color}; font-weight: bold;'
+                        styles.append(style)
+                        
+                    return styles
+
+                # Display with Styler
                 event = st.dataframe(
-                    risk_df[display_cols].style
+                    merged_df[display_cols].style
                     .format({"Risk Score": "{:.1%}"})
-                    .applymap(color_risk, subset=["Risk Score"]),
+                    .apply(color_rows, axis=1),
                     height=300,
                     use_container_width=True,
                     on_select="rerun",
@@ -610,6 +676,51 @@ if model_artifact is not None and df is not None:
     # --- Main Content Details ---
     
     st.markdown("---") # Separator between list and details
+    
+    # --- TRACKING & ACTIONS ---
+    if data_source == "Select Existing Student":
+        with st.expander("📝 Actions & Tracking", expanded=True):
+            # Check current status
+            curr_tracked_val = 0
+            curr_notes = ""
+            
+            if selected_student_index in tracking_df.index:
+                curr_tracked_val = int(tracking_df.loc[selected_student_index, "Is_Tracked"])
+                curr_notes = str(tracking_df.loc[selected_student_index, "Notes"])
+                if curr_notes == "nan": curr_notes = ""
+            
+            curr_tracked = (curr_tracked_val == 1)
+
+            # Callback to save immediately
+            def on_track_change():
+                save_tracking_data(
+                    selected_student_index, 
+                    st.session_state.track_checkbox, 
+                    st.session_state.track_notes
+                )
+                
+            # UI Components
+            c1, c2 = st.columns([1, 3])
+            with c1:
+                is_tracked_input = st.checkbox(
+                    "Mark as Tracked", 
+                    value=curr_tracked,
+                    key="track_checkbox",
+                    on_change=on_track_change
+                )
+                if is_tracked_input:
+                    st.caption("✅ Saved to 'Is Tracked'")
+            
+            with c2:
+                notes_input = st.text_area(
+                    "Action Notes / Tracking Action", 
+                    value=curr_notes,
+                    placeholder="e.g. Sent academic warning email on 12/05...",
+                    key="track_notes",
+                    on_change=on_track_change
+                )
+
+    st.markdown("---")
 
     col1, col2 = st.columns([2, 1])
     
