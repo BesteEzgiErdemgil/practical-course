@@ -333,6 +333,32 @@ if model_artifact is not None and df is not None:
         td.to_csv(tracking_file)
         return td
 
+    def bulk_update_tracking(indices, notes):
+        # Load current
+        td = load_tracking_data()
+        
+        # Ensure indices list is unique to avoid potential ambiguities
+        indices = list(set(indices))
+        
+        # Identify missing indices
+        # We need to ensure we don't assume index types align perfectly without check,
+        # but typically they should be matching if sourced from the same app runtime.
+        existing_idx = set(td.index)
+        missing_idx = [i for i in indices if i not in existing_idx]
+        
+        # Append new rows if needed
+        if missing_idx:
+            new_rows = pd.DataFrame(index=missing_idx, columns=td.columns)
+            td = pd.concat([td, new_rows])
+        
+        # Now safely update
+        td.loc[indices, "Is_Tracked"] = 1
+        td.loc[indices, "Notes"] = notes
+        
+        td.index.name = "Student_Index"
+        td.to_csv(tracking_file)
+        return td
+
     # Load initially
     tracking_df = load_tracking_data()
 
@@ -563,10 +589,20 @@ if model_artifact is not None and df is not None:
                         if target_group == "High Risk":
                             if high_risk_count > 0:
                                 st.write(f"**Target:** {high_risk_count} Risk Students")
-                                action_type = st.selectbox("Action", ["Send Email", "Schedule Meeting", "Notify Tutors"], key="bulk_action_risk")
+                                action_type = st.selectbox("Action", [
+                                    "Schedule Meeting: At-risk Student Intervention Meeting", 
+                                    "Schedule Meeting: Post-graduation Options", 
+                                    "Schedule Meeting: Advice of Attendance to Lectures & Tutorials", 
+                                    "Notify Tutors About High Risk Students"
+                                ], key="bulk_action_risk")
                                 
                                 if st.button(f"Execute Action"):
+                                     # SYNC: Update tracking for all these students
+                                     target_indices = high_risk_students.index.tolist()
+                                     bulk_update_tracking(target_indices, action_type)
+                                     
                                      st.success(f"'{action_type}' queued for {high_risk_count} students.")
+                                     st.rerun()
                             else:
                                 st.info("No high risk students found.")
                                 
@@ -576,8 +612,12 @@ if model_artifact is not None and df is not None:
                                 action_type = st.selectbox("Action", ["Send Kudos", "Invite to Honor Society", "Ask for Testimonial"], key="bulk_action_safe")
                                 
                                 if st.button(f"Execute Action"):
+                                     target_indices = safe_students.index.tolist()
+                                     bulk_update_tracking(target_indices, action_type)
+                                     
                                      st.balloons() # Fun effect for kudos
                                      st.success(f"'{action_type}' queued for {safe_count} students!")
+                                     st.rerun()
                             else:
                                 st.info("No likely graduates found.")
                         
