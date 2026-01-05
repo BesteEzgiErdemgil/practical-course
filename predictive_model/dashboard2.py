@@ -1255,72 +1255,68 @@ if model_artifact is not None and df is not None:
                     max_val = shap_df["Impact"].abs().max()
                 limit = max_val * 1.1 if max_val > 0 else 0.1
                 
-                # Create Columns - RISK ON LEFT, PROTECTIVE ON RIGHT (Original Layout)
-                col_risk, col_prot = st.columns(2)
-                
                 # Function to calculate consistent height PER PLOT
                 def get_plot_height(n_bars):
-                    return max(n_bars * 0.5 + 1.0, 2.0)
+                    return max(n_bars * 0.5 + 2.0, 3.0) # Increased base height slightly
 
-                # FIXED MARGIN for symmetry
-                # We force the left margin to be 40% of the figure width to accommodate labels
-                # This ensures the actual plot area starts at the exact same horizontal pixel in both columns
-                margin_left = 0.4 
+                # Adjusted margin for wider full-width plots
+                # Width increased to 12, so usage of 0.2 gives ~2.4 inches for labels (similar to previous 0.4 * 5 = 2.0)
+                margin_left = 0.25 
 
-                with col_risk:
-                    st.markdown("#### ⚠️ Risk Factors")
-                    if not risk_df.empty:
-                        h_risk = get_plot_height(len(risk_df))
-                        fig_r, ax_r = plt.subplots(figsize=(5, h_risk))
+                # 1. RISK FACTORS
+                st.markdown("#### ⚠️ Risk Factors")
+                if not risk_df.empty:
+                    h_risk = get_plot_height(len(risk_df))
+                    # Increased figsize width from 5 to 12
+                    fig_r, ax_r = plt.subplots(figsize=(12, h_risk))
+                    
+                    fig_r.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
+                    
+                    ax_r.barh(risk_df['Feature'], risk_df['Impact'], color='red', height=0.6)
+                    ax_r.set_xlim([0, limit])
+                    ax_r.set_xlabel("Impact (Increases Risk)")
+                    
+                    # Spines - Clean
+                    ax_r.spines['right'].set_visible(False)
+                    ax_r.spines['top'].set_visible(False)
+                    
+                    # Increase tick label size for "Bigger" feel
+                    ax_r.tick_params(axis='both', which='major', labelsize=11)
+                    ax_r.xaxis.label.set_size(12)
+                    
+                    st.pyplot(fig_r, use_container_width=True)
+                else:
+                    st.info("No major risk factors found.")
+                    
+                st.write("") # Spacer
+                st.write("") 
                         
-                        # Adjust margin!
-                        fig_r.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
-                        
-                        ax_r.barh(risk_df['Feature'], risk_df['Impact'], color='red', height=0.6)
-                        ax_r.set_xlim([0, limit])
-                        ax_r.set_xlabel("Impact (Increases Risk)")
-                        
-                        # Spines - Clean
-                        ax_r.spines['right'].set_visible(False)
-                        ax_r.spines['top'].set_visible(False)
-                        
-                        st.pyplot(fig_r, use_container_width=True)
-                    else:
-                        st.info("No major risk factors found.")
-                        
-                with col_prot:
-                    st.markdown("#### 🛡️ Protective Factors")
-                    if not protective_df.empty:
-                        h_prot = get_plot_height(len(protective_df))
-                        fig_p, ax_p = plt.subplots(figsize=(5, h_prot))
-                        
-                        # Adjust margin matches Risk plot
-                        fig_p.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
-                        
-                        # Protective - Original logic (Bars grow Left -> Right)
-                        # Original code used xlim([0, -limit]) which effectively inverts the values visually 
-                        # if values are negative.
-                        # Wait, protective_df['Impact'] contains negative values.
-                        # If we plot negative values on xlim[0, -limit], 0 is left, -limit is right.
-                        # So -0.5 is at x=-0.5.
-                        # If axis is 0..-1, -0.5 is halfway.
-                        # So it grows Left->Right. Correct.
-                        
-                        ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
-                        ax_p.set_xlim([0, -limit]) 
-                        ax_p.set_xlabel("Impact (Reduces Risk)")
-                        
-                        # Spines - Clean (Original had Left/Right hidden? Reverting to standard clean)
-                        ax_p.spines['left'].set_visible(True) # Need left spine for tick labels
-                        ax_p.spines['right'].set_visible(False)
-                        ax_p.spines['top'].set_visible(False)
-                        
-                        # Restore default tick params (Left side)
-                        ax_p.yaxis.tick_left()
-                        
-                        st.pyplot(fig_p, use_container_width=True)
-                    else:
-                        st.info("No major protective factors found.")
+                # 2. PROTECTIVE FACTORS (Stacked below)
+                st.markdown("#### 🛡️ Protective Factors")
+                if not protective_df.empty:
+                    h_prot = get_plot_height(len(protective_df))
+                    # Increased figsize width from 5 to 12
+                    fig_p, ax_p = plt.subplots(figsize=(12, h_prot))
+                    
+                    fig_p.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
+                    
+                    ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
+                    ax_p.set_xlim([0, -limit]) 
+                    ax_p.set_xlabel("Impact (Reduces Risk)")
+                    
+                    # Spines - Clean
+                    ax_p.spines['left'].set_visible(True) 
+                    ax_p.spines['right'].set_visible(False)
+                    ax_p.spines['top'].set_visible(False)
+                    ax_p.yaxis.tick_left()
+                    
+                    # Increase tick label size
+                    ax_p.tick_params(axis='both', which='major', labelsize=11)
+                    ax_p.xaxis.label.set_size(12)
+                    
+                    st.pyplot(fig_p, use_container_width=True)
+                else:
+                    st.info("No major protective factors found.")
             else:
                 st.info("No significant features influenced this prediction.")
         
