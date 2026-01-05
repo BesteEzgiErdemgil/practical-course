@@ -429,6 +429,10 @@ if model_artifact is not None and df is not None:
                                  c_id = c_rev.get(sel_c)
                                  if c_id:
                                      filtered_risk_df = filtered_risk_df[filtered_risk_df["Course"] == c_id]
+                                     # Warning check
+                                     curr_count = len(filtered_risk_df)
+                                     if 0 < curr_count < 20:
+                                         st.warning(f"⚠️ Low sample: {curr_count} students")
                                      
                         elif attr in ["Application_mode", "Application mode"]:
                              available_am = sorted(list(application_mode_map.values()))
@@ -438,35 +442,62 @@ if model_artifact is not None and df is not None:
                                  am_id = am_rev.get(sel_am)
                                  if am_id:
                                      # Use actual column name
-                                     filtered_risk_df = filtered_risk_df[filtered_risk_df[attr] == am_id]
+                                     col_name = "Application_mode" if "Application_mode" in risk_df.columns else "Application mode"
+                                     filtered_risk_df = filtered_risk_df[filtered_risk_df[col_name] == am_id]
+                                     # Warning check
+                                     curr_count = len(filtered_risk_df)
+                                     if 0 < curr_count < 20:
+                                         st.warning(f"⚠️ Low sample: {curr_count} students")
 
                         else:
-                            # --- STANDARD SLIDERS FOR OTHERS ---
-                            try:
-                                c_num = pd.to_numeric(col_data, errors='coerce')
-                                min_val = float(c_num.min())
-                                max_val = float(c_num.max())
+                            # --- OTHER ATTRIBUTES ---
+                            unique_count = col_data.nunique()
+                            is_numeric = pd.api.types.is_numeric_dtype(col_data)
+                            
+                            # Specific check for Tuition or general low cardinality
+                            if (unique_count < 10) or (not is_numeric) or (attr == "Tuition_fees_up_to_date"):
+                                # Categorical (Multiselect)
+                                unique_vals = sorted(col_data.dropna().unique())
+                                unique_vals_str = [str(x) for x in unique_vals]
                                 
-                                if pd.isna(min_val) or pd.isna(max_val):
-                                     continue
-
-                                if min_val == max_val:
-                                    st.caption(f"{attr}: Constant {min_val}")
-                                else:
-                                    rng = st.slider(
-                                        f"{attr}", 
-                                        min_value=min_val, 
-                                        max_value=max_val, 
-                                        value=(min_val, max_val),
-                                        key=f"slider_{attr}"
-                                    )
+                                sel_vals = st.multiselect(
+                                    f"{attr}",
+                                    options=unique_vals_str,
+                                    default=unique_vals_str,
+                                    key=f"dyn_multi_{attr}"
+                                )
+                                
+                                if len(sel_vals) < len(unique_vals_str):
+                                    mask = col_data.astype(str).isin(sel_vals)
+                                    filtered_risk_df = filtered_risk_df[mask]
                                     
-                                    filtered_risk_df = filtered_risk_df[
-                                        (filtered_risk_df[attr] >= rng[0]) & 
-                                        (filtered_risk_df[attr] <= rng[1])
-                                    ]
-                            except Exception as e:
-                                pass
+                            else:
+                                # Numerical Slider
+                                try:
+                                    c_num = pd.to_numeric(col_data, errors='coerce')
+                                    min_val = float(c_num.min())
+                                    max_val = float(c_num.max())
+                                    
+                                    if pd.isna(min_val) or pd.isna(max_val):
+                                         continue
+
+                                    if min_val == max_val:
+                                        st.caption(f"{attr}: Constant {min_val}")
+                                    else:
+                                        rng = st.slider(
+                                            f"{attr}", 
+                                            min_value=min_val, 
+                                            max_value=max_val, 
+                                            value=(min_val, max_val),
+                                            key=f"slider_{attr}"
+                                        )
+                                        
+                                        filtered_risk_df = filtered_risk_df[
+                                            (filtered_risk_df[attr] >= rng[0]) & 
+                                            (filtered_risk_df[attr] <= rng[1])
+                                        ]
+                                except Exception as e:
+                                    pass
 
                 # --- NEW: Group Summary ---
                 st.subheader("📊 Group Summary")
