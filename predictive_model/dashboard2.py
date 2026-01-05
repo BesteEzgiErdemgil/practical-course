@@ -793,11 +793,13 @@ if model_artifact is not None and df is not None:
                 
                 default_cols = ["Risk Score", "Is Tracked", "Tracking Action"] + [c for c in display_candidates if c not in ["Risk Score", "Is Tracked", "Tracking Action"]]
                 
-                with st.expander("Show/Hide Columns"):
-                    display_cols = st.multiselect("Select Columns to Display", options=display_candidates, default=default_cols)
                 
-                if not display_cols: 
-                    st.warning("Please select at least one column to display.")
+                # Initialize Session State for columns if needed
+                if "risk_list_display_cols" not in st.session_state:
+                    st.session_state.risk_list_display_cols = default_cols
+                
+                display_cols = st.session_state.risk_list_display_cols
+                if not display_cols:
                     display_cols = ["Risk Score"]
 
                 def color_rows(row):
@@ -832,6 +834,16 @@ if model_artifact is not None and df is not None:
                     selection_mode="single-row",
                     key="risk_list_table" 
                 )
+
+                # Show/Hide Columns (Moved Below Table)
+                with st.expander("Show/Hide Columns"):
+                    st.multiselect(
+                        "Select Columns to Display", 
+                        options=display_candidates, 
+                        key="risk_list_display_cols"
+                    )
+                    if not st.session_state.risk_list_display_cols:
+                         st.warning("Please select at least one column.")
                 
                 # Handle List Selection
                 if len(event.selection.rows) > 0:
