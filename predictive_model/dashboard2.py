@@ -84,7 +84,7 @@ def render_guide():
     *   **Student List**: The table shows students matching your filters.
         *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
         *   **Tracking**: Blue rows indicate students you have already marked/tracked.
-        *   **Select**: Click a row to view the detailed profile.
+        *   **Select**: Use the Select button to view the student's profile by a specific student index.
 
     #### 3. 👤 Student Profile & Analysis
     Once a student is selected, you will see:
@@ -113,7 +113,7 @@ if not st.session_state.guide_shown:
 # Title
 col_title, col_help = st.columns([0.9, 0.1])
 with col_title:
-    st.title("Student Dropout & Success Risk Dashboard")
+    st.title("Student Dropout Risk & Intervention Dashboard")
 with col_help:
     st.write("") # Spacer
     st.write("")
