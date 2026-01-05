@@ -75,8 +75,8 @@ def render_guide():
     #### 1. 📂 Data & Configuration (Sidebar)
     *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
         *   Students with risk **above** the red threshold are flagged as **High Risk**.
-        *   Students **below** the green threshold are **Safe**.
-        *   Those in between are marked as **Monitor**.
+        *   Students **below** the green threshold are **Low Risk**.
+        *   Those in between are marked as **Medium Risk**.
     *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
 
     #### 2. 🔍 Filters & List View
@@ -89,7 +89,7 @@ def render_guide():
     #### 3. 👤 Student Profile & Analysis
     Once a student is selected, you will see:
     *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
-    *   **Risk Status**: A badge indicating if they are High Risk, Monitor, or Safe.
+    *   **Risk Status**: A badge indicating if they are High Risk, Medium Risk, or Low Risk.
     *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
 
     #### 4. 🧠 Explainability (Why this prediction?)
@@ -398,8 +398,8 @@ if model_artifact is not None and df is not None:
         #### 1. 📂 Data & Configuration (Sidebar)
         *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
             *   Students with risk **above** the red threshold are flagged as **High Risk**.
-            *   Students **below** the green threshold are **Safe**.
-            *   Those in between are marked as **Monitor**.
+            *   Students **below** the green threshold are **Low Risk**.
+            *   Those in between are marked as **Medium Risk**.
         *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
 
         #### 2. 🔍 Filters & List View
@@ -412,7 +412,7 @@ if model_artifact is not None and df is not None:
         #### 3. 👤 Student Profile & Analysis
         Once a student is selected, you will see:
         *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
-        *   **Risk Status**: A badge indicating if they are High Risk, Monitor, or Safe.
+        *   **Risk Status**: A badge indicating if they are High, Medium or Low Risk.
         *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
 
         #### 4. 🧠 Explainability (Why this prediction?)
@@ -954,9 +954,9 @@ if model_artifact is not None and df is not None:
     if dropout_prob >= st.session_state.high_risk_threshold:
         st.sidebar.error(f"🚨 HIGH RISK ({dropout_prob:.1%})")
     elif dropout_prob <= st.session_state.low_risk_threshold:
-        st.sidebar.success(f"✅ SAFE ({dropout_prob:.1%})")
+        st.sidebar.success(f"✅ LOW RISK ({dropout_prob:.1%})")
     else:
-        st.sidebar.warning(f"⚠️ MONITOR ({dropout_prob:.1%})")
+        st.sidebar.warning(f"⚠️ MEDIUM RISK ({dropout_prob:.1%})")
             
     # --- Main Content Details ---
     
@@ -1383,11 +1383,11 @@ if model_artifact is not None and df is not None:
                             
                         with res_col2:
                             if new_risk < st.session_state.low_risk_threshold:
-                                st.success("Outcome: **SAFE**")
+                                st.success("Outcome: **LOW RISK**")
                             elif new_risk > st.session_state.high_risk_threshold:
                                 st.error("Outcome: **HIGH RISK**")
                             else:
-                                st.warning("Outcome: **MONITOR**")
+                                st.warning("Outcome: **MEDIUM RISK**")
                                 
                     except Exception as e:
                         st.error(f"Simulation failed: {e}")
