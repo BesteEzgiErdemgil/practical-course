@@ -59,7 +59,67 @@ course_map = {
 st.set_page_config(page_title="Student Success Dashboard (v2 - 5Fold)", layout="wide")
 
 # Title
-st.title("Student Dropout & Success Risk Dashboard")
+# --- Session State Init ---
+if "guide_shown" not in st.session_state:
+    st.session_state.guide_shown = False
+
+@st.dialog("Dashboard Guide", width="large")
+def render_guide():
+    """Renders the dashboard explanation overlay."""
+    st.markdown("""
+    ### Welcome to the Student Success Dashboard!
+    
+    This tool is designed to help you identify students at risk of dropout early and take proactive measures. 
+    Here is a quick overview of how to navigate and use the features:
+
+    #### 1. 📂 Data & Configuration (Sidebar)
+    *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
+        *   Students with risk **above** the red threshold are flagged as **High Risk**.
+        *   Students **below** the green threshold are **Safe**.
+        *   Those in between are marked as **Monitor**.
+    *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
+
+    #### 2. 🔍 Filters & List View
+    *   **Filter Students**: Use the "Filter Students" dropdown to narrow down the list by *Course*, *Application Mode*, or other attributes like *Tuition Status*.
+    *   **Student List**: The table shows students matching your filters.
+        *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
+        *   **Tracking**: Blue rows indicate students you have already marked/tracked.
+        *   **Select**: Click a row to view the detailed profile.
+
+    #### 3. 👤 Student Profile & Analysis
+    Once a student is selected, you will see:
+    *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
+    *   **Risk Status**: A badge indicating if they are High Risk, Monitor, or Safe.
+    *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
+
+    #### 4. 🧠 Explainability (Why this prediction?)
+    *   **SHAP Analysis**: 
+        *   **Red Bars (Risk Factors)**: Characteristics that *increase* the likelihood of dropout.
+        *   **Green Bars (Protective Factors)**: Characteristics that *reduce* risk.
+        *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
+
+    #### 5. 🛠️ Simulation (What-If?)
+    *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
+    *   See immediate feedback on how the risk score changes.
+
+    ---
+    """)
+
+# Auto-Show on First Load
+if not st.session_state.guide_shown:
+    st.session_state.guide_shown = True
+    render_guide()
+
+# Title
+col_title, col_help = st.columns([0.9, 0.1])
+with col_title:
+    st.title("Student Dropout & Success Risk Dashboard")
+with col_help:
+    st.write("") # Spacer
+    st.write("")
+    if st.button("❓", help="Open Dashboard Guide"):
+        render_guide()
+
 st.markdown("---")
 
 # --- CSS STYLING ---
@@ -132,6 +192,11 @@ div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slid
 st.sidebar.header("Configuration")
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# -------------------------------
+# AI Threshold Recommendation Modal (Session State)
+# -------------------------------
+
+
 # -------------------------------
 # AI Threshold Recommendation Modal (Session State)
 # -------------------------------
@@ -320,6 +385,53 @@ if model_artifact is not None and df is not None:
                 return pd.DataFrame(columns=["Is_Tracked", "Notes"])
         else:
             return pd.DataFrame(columns=["Is_Tracked", "Notes"])
+
+    @st.dialog("Dashboard Guide", width="large")
+    def render_guide():
+        """Renders the dashboard explanation overlay."""
+        st.markdown("""
+        ### Welcome to the Student Success Dashboard!
+        
+        This tool is designed to help you identify students at risk of dropout early and take proactive measures. 
+        Here is a quick overview of how to navigate and use the features:
+
+        #### 1. 📂 Data & Configuration (Sidebar)
+        *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
+            *   Students with risk **above** the red threshold are flagged as **High Risk**.
+            *   Students **below** the green threshold are **Safe**.
+            *   Those in between are marked as **Monitor**.
+        *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
+
+        #### 2. 🔍 Filters & List View
+        *   **Filter Students**: Use the "Filter Students" dropdown to narrow down the list by *Course*, *Application Mode*, or other attributes like *Tuition Status*.
+        *   **Student List**: The table shows students matching your filters.
+            *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
+            *   **Tracking**: Blue rows indicate students you have already marked/tracked.
+            *   **Select**: Click a row to view the detailed profile.
+
+        #### 3. 👤 Student Profile & Analysis
+        Once a student is selected, you will see:
+        *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
+        *   **Risk Status**: A badge indicating if they are High Risk, Monitor, or Safe.
+        *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
+
+        #### 4. 🧠 Explainability (Why this prediction?)
+        *   **SHAP Analysis**: 
+            *   **Red Bars (Risk Factors)**: Characteristics that *increase* the likelihood of dropout.
+            *   **Green Bars (Protective Factors)**: Characteristics that *reduce* risk.
+        *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
+
+        #### 5. 🛠️ Simulation (What-If?)
+        *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
+        *   See immediate feedback on how the risk score changes.
+
+        ---
+        """)
+
+    # Auto-Show on First Load
+    if not st.session_state.guide_shown:
+        st.session_state.guide_shown = True
+        render_guide()
 
     def save_tracking_data(index, is_tracked, notes):
         # Load current
