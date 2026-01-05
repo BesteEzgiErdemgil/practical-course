@@ -878,46 +878,46 @@ if model_artifact is not None and df is not None:
         # Lighter/Thinner border: 2px solid #ccc
         # Removed explicit fonts to inherit default Streamlit styles
         html_card = f"""
-        <div style="border: 2px solid #ccc; border-radius: 0px; margin-bottom: 20px; background-color: white;">
+        <div style="border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 8px; margin-bottom: 20px; background-color: transparent;">
           <!-- Row 1: Course | App Mode -->
-          <div style="display: flex; border-bottom: 2px solid #ccc;">
-            <div style="flex: 1; padding: 12px; border-right: 2px solid #ccc;">
+          <div style="display: flex; border-bottom: 1px solid rgba(128, 128, 128, 0.5);">
+            <div style="flex: 1; padding: 12px; border-right: 1px solid rgba(128, 128, 128, 0.5);">
                <h4 style="color: #4A90E2; margin: 0;">Course</h4>
-               <p style="margin: 5px 0 0 0; color: #333;">{d_course}</p>
+               <p style="margin: 5px 0 0 0; color: inherit;">{d_course}</p>
             </div>
             <div style="flex: 1; padding: 12px;">
                <h4 style="color: #4A90E2; margin: 0;">Application Mode</h4>
-               <p style="margin: 5px 0 0 0; color: #333;">{d_app_mode}</p>
+               <p style="margin: 5px 0 0 0; color: inherit;">{d_app_mode}</p>
             </div>
           </div>
 
           <!-- Row 2: Age | Tuition -->
-          <div style="display: flex; border-bottom: 2px solid #ccc;">
-            <div style="flex: 1; padding: 12px; border-right: 2px solid #ccc;">
+          <div style="display: flex; border-bottom: 1px solid rgba(128, 128, 128, 0.5);">
+            <div style="flex: 1; padding: 12px; border-right: 1px solid rgba(128, 128, 128, 0.5);">
                <h4 style="color: #4A90E2; margin: 0;">Age at Enrollment</h4>
-               <p style="margin: 5px 0 0 0; color: #333;">{v_age}</p>
+               <p style="margin: 5px 0 0 0; color: inherit;">{v_age}</p>
             </div>
             <div style="flex: 1; padding: 12px;">
                <h4 style="color: #4A90E2; margin: 0;">Tuition Fees</h4>
-               <p style="margin: 5px 0 0 0; color: #333;">{v_t_status}</p>
+               <p style="margin: 5px 0 0 0; color: inherit;">{v_t_status}</p>
             </div>
           </div>
 
           <!-- Row 3: 1st Sem -->
-          <div style="padding: 12px; border-bottom: 2px solid #ccc;">
+          <div style="padding: 12px; border-bottom: 1px solid rgba(128, 128, 128, 0.5);">
              <h4 style="color: #E91E63; margin-bottom: 12px; margin-top: 0;">1st Semester Performance</h4>
              <div style="display: flex; justify-content: space-between;">
                 <div style="flex: 1;">
                     <h4 style="color: #4A90E2; margin: 0;">Grade Avg</h4>
-                    <p style="margin: 5px 0 0 0; color: #333;">{v_g1}</p>
+                    <p style="margin: 5px 0 0 0; color: inherit;">{v_g1}</p>
                 </div>
                 <div style="flex: 1;">
                     <h4 style="color: #4A90E2; margin: 0;">Enrolled</h4>
-                    <p style="margin: 5px 0 0 0; color: #333;">{v_e1}</p>
+                    <p style="margin: 5px 0 0 0; color: inherit;">{v_e1}</p>
                 </div>
                 <div style="flex: 1;">
                      <h4 style="color: #4A90E2; margin: 0;">Approved</h4>
-                     <p style="margin: 5px 0 0 0; color: #333;">{v_a1}</p>
+                     <p style="margin: 5px 0 0 0; color: inherit;">{v_a1}</p>
                 </div>
              </div>
           </div>
@@ -928,15 +928,15 @@ if model_artifact is not None and df is not None:
              <div style="display: flex; justify-content: space-between;">
                 <div style="flex: 1;">
                     <h4 style="color: #4A90E2; margin: 0;">Grade Avg</h4>
-                    <p style="margin: 5px 0 0 0; color: #333;">{v_g2}</p>
+                    <p style="margin: 5px 0 0 0; color: inherit;">{v_g2}</p>
                 </div>
                 <div style="flex: 1;">
                     <h4 style="color: #4A90E2; margin: 0;">Enrolled</h4>
-                    <p style="margin: 5px 0 0 0; color: #333;">{v_e2}</p>
+                    <p style="margin: 5px 0 0 0; color: inherit;">{v_e2}</p>
                 </div>
                 <div style="flex: 1;">
                      <h4 style="color: #4A90E2; margin: 0;">Approved</h4>
-                     <p style="margin: 5px 0 0 0; color: #333;">{v_a2}</p>
+                     <p style="margin: 5px 0 0 0; color: inherit;">{v_a2}</p>
                 </div>
              </div>
           </div>
