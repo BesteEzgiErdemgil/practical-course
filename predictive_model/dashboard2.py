@@ -110,6 +110,21 @@ div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"]:nth-of
     font-weight: bold;
     white-space: nowrap;
 }
+
+/* RESET for Sliders inside Expanders (Filters) */
+div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] {
+    background-color: #ff4b4b !important; /* Default Streamlit Red */
+    border-color: #ff4b4b !important;
+    color: inherit !important;
+}
+
+div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] * {
+    color: inherit !important;
+}
+
+div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"]::after {
+    content: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
