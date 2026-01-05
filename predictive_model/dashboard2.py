@@ -777,7 +777,7 @@ if model_artifact is not None and df is not None:
             st.markdown(f"{t_status}")
 
         # Row 3: Academic Performance (1st Sem)
-        st.markdown(f"<h5 style='color: #17A589;'>1st Semester Performance</h5>", unsafe_allow_html=True)
+        st.markdown(f"<h5 style='color: #E91E63;'>1st Semester Performance</h5>", unsafe_allow_html=True)
         m1, m2, m3 = st.columns(3)
         with m1:
             st.markdown(f"<h4 style='color: #4A90E2;'>Grade Avg</h4>", unsafe_allow_html=True)
@@ -793,7 +793,7 @@ if model_artifact is not None and df is not None:
             st.markdown(val)
 
         # Row 4: Academic Performance (2nd Sem)
-        st.markdown(f"<h5 style='color: #17A589;'>2nd Semester Performance</h5>", unsafe_allow_html=True)
+        st.markdown(f"<h5 style='color: #E91E63;'>2nd Semester Performance</h5>", unsafe_allow_html=True)
         n1, n2, n3 = st.columns(3)
 
         with n1:
