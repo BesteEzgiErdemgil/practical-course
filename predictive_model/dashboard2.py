@@ -59,7 +59,7 @@ course_map = {
 st.set_page_config(page_title="Student Success Dashboard (v2 - 5Fold)", layout="wide")
 
 # Title
-st.title("🎓 Student Success & Dropout Risk Dashboard (v2.1 - Tracker Active)")
+st.title("Student Dropout & Success Risk Dashboard")
 st.markdown("---")
 
 # --- CSS STYLING ---
@@ -88,7 +88,7 @@ div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"]:nth-of
 
 /* Moving Labels */
 div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"]:nth-of-type(1)::after {
-    content: "Safe";
+    content: "Low Risk";
     position: absolute;
     top: 20px;
     left: 50%;
@@ -146,7 +146,7 @@ if "low_risk_threshold" not in st.session_state:
 
 # Sidebar button to open modal
 # Sidebar button to open modal
-if st.sidebar.button("💡 AI Threshold Recommendation"):
+if st.sidebar.button("AI Threshold Recommendation"):
     st.session_state.show_threshold_modal = not st.session_state.show_threshold_modal
 
 if st.session_state.show_threshold_modal:
@@ -380,11 +380,11 @@ if model_artifact is not None and df is not None:
     # pd.read_csv handled decimal=',' above, so dtypes should be mostly correct.
     
     # --- Sidebar Filters ---
-    st.sidebar.subheader("Filter Students")
+    st.sidebar.subheader("Dropout Risk Threshold")
     
     # Threshold Sliders
     risk_range = st.sidebar.slider(
-        "Risk Threshold", 0.0, 1.0, 
+        "Set thresholds for Low & High Risk", 0.0, 1.0, 
         (st.session_state.low_risk_threshold, st.session_state.high_risk_threshold), 
         0.05
     )
@@ -641,7 +641,7 @@ if model_artifact is not None and df is not None:
                 # Sidebar Selectbox
                 sb_options = risk_df.index if not risk_df.empty else []
                 sb_student = st.sidebar.selectbox(
-                    "Select Student Index", 
+                    "Select a Student by Index", 
                     options=sb_options,
                     index=get_index_pos(st.session_state.selected_student_idx, sb_options),
                     key="sb_student_select"
@@ -681,7 +681,7 @@ if model_artifact is not None and df is not None:
                 
                 default_cols = ["Risk Score", "Is Tracked", "Tracking Action"] + [c for c in display_candidates if c not in ["Risk Score", "Is Tracked", "Tracking Action"]]
                 
-                with st.expander("👁️ Show/Hide Columns"):
+                with st.expander("Show/Hide Columns"):
                     display_cols = st.multiselect("Select Columns to Display", options=display_candidates, default=default_cols)
                 
                 if not display_cols: 
