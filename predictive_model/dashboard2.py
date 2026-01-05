@@ -377,91 +377,96 @@ if model_artifact is not None and df is not None:
                 risk_df = risk_df.sort_values(by="Risk Score", ascending=False)
                 
                 # --- NEW: Group Filters ---
+                # --- NEW: Unified Filter Section ---
                 st.sidebar.markdown("---")
-                st.sidebar.subheader("Filter Students")
-                
-                # Course Filter
-                # Ensure we have the map accessible. course_map is global.
-                available_courses = sorted(list(course_map.values()))
-                sel_course_label = st.sidebar.selectbox("Filter by Course", ["All"] + available_courses)
-                
-                # App Mode Filter
-                available_app_modes = sorted(list(application_mode_map.values()))
-                sel_app_mode_label = st.sidebar.selectbox("Filter by Mode", ["All"] + available_app_modes)
-                
-                # Apply Filters
-                filtered_risk_df = risk_df.copy()
-                
-                if sel_course_label != "All":
-                    # Map label back to ID
-                    c_rev = {v: k for k, v in course_map.items()}
-                    c_id = c_rev.get(sel_course_label)
-                    if c_id:
-                        filtered_risk_df = filtered_risk_df[filtered_risk_df["Course"] == c_id]
-                        
-                if sel_app_mode_label != "All":
-                    am_rev = {v: k for k, v in application_mode_map.items()}
-                    am_id = am_rev.get(sel_app_mode_label)
-                    if am_id:
-                         # Handle potentially different column names
-                         col_name = "Application_mode" if "Application_mode" in risk_df.columns else "Application mode"
-                         filtered_risk_df = filtered_risk_df[filtered_risk_df[col_name] == am_id]
+                # User Request: "course and mode inside... name filter students"
+                with st.sidebar.expander("Filter Students", expanded=False):
+                    
+                    # 3. Dynamic Attribute Filters
+                    # Exclude 'Risk Score' and 'Target' and the ones already filtered above
+                    cols_to_exclude = ["Risk Score"]
+                    if "target_col" in locals():
+                        cols_to_exclude.append(target_col)
+                    
+                    # Get available columns based on original df logic (but using risk_df for current state)
+                    available_attribs = sorted([c for c in risk_df.columns if c not in cols_to_exclude])
+                    
+                    # Move Course and Apply mode to top if present
+                    priority_cols = ["Course", "Application_mode", "Application mode"]
+                    sorted_attribs = []
+                    for p in priority_cols:
+                        if p in available_attribs:
+                            sorted_attribs.append(p)
+                            available_attribs.remove(p)
+                    sorted_attribs.extend(available_attribs)
 
-                # --- NEW: Dynamic Attribute Filters ---
-                # Exclude 'Risk Score' and 'Target' and the ones already filtered above
-                cols_to_exclude = ["Risk Score"]
-                if "target_col" in locals():
-                    cols_to_exclude.append(target_col)
-                
-                # Also exclude Course and App Mode relative columns as they are handled above
-                # We check for variations of names commonly found
-                cols_to_exclude.extend(["Course", "Application_mode", "Application mode"])
-
-                # Get available columns based on original df logic (but using risk_df for current state)
-                available_attribs = sorted([c for c in risk_df.columns if c not in cols_to_exclude])
-                
-                # User Request: "like ceteris paribus... open... attributes not all visible... select to see"
-                with st.sidebar.expander("Advanced Attributes"):
                     selected_attribs = st.multiselect(
                         "Select Attributes to Filter", 
-                        options=available_attribs,
+                        options=sorted_attribs,
+                        # Default to Course and App Mode being selected initially? 
+                        # User wants them treated as attributes. Typically user expects them valid by default?
+                        # Let's keep them unselected by default OR selected by default so logic holds?
+                        # Previous logic had them visible by default. 
+                        # Let's clean state: default empty? Or default basic ones?
+                        # User said "course ve mode attributu de içinde olsun... aralarında bi fark yok"
+                        default=[],
                         key="dynamic_filter_multiselect"
                     )
+                    
+                    # Initialize filtered DF (Base copy)
+                    # We do it here so the loop can modify it
+                    filtered_risk_df = risk_df.copy()
                     
                     for attr in selected_attribs:
                         col_data = risk_df[attr]
                         
-                        # Force numeric conversion for safety if possible
-                        try:
-                            # Attempt to convert to numeric to find min/max
-                            # If it's already numeric, this is cheap.
-                            c_num = pd.to_numeric(col_data, errors='coerce')
-                            
-                            min_val = float(c_num.min())
-                            max_val = float(c_num.max())
-                            
-                            if pd.isna(min_val) or pd.isna(max_val):
-                                 # Fallback for completely non-numeric
-                                 continue
+                        # --- SPECIAL HANDLING FOR COURSE / APP MODE ---
+                        if attr == "Course":
+                             available_courses = sorted(list(course_map.values()))
+                             sel_c = st.selectbox(f"Filter {attr}", ["All"] + available_courses, key="dyn_course")
+                             if sel_c != "All":
+                                 c_rev = {v: k for k, v in course_map.items()}
+                                 c_id = c_rev.get(sel_c)
+                                 if c_id:
+                                     filtered_risk_df = filtered_risk_df[filtered_risk_df["Course"] == c_id]
+                                     
+                        elif attr in ["Application_mode", "Application mode"]:
+                             available_am = sorted(list(application_mode_map.values()))
+                             sel_am = st.selectbox(f"Filter {attr}", ["All"] + available_am, key="dyn_app_mode")
+                             if sel_am != "All":
+                                 am_rev = {v: k for k, v in application_mode_map.items()}
+                                 am_id = am_rev.get(sel_am)
+                                 if am_id:
+                                     # Use actual column name
+                                     filtered_risk_df = filtered_risk_df[filtered_risk_df[attr] == am_id]
 
-                            if min_val == max_val:
-                                st.caption(f"{attr}: Constant {min_val}")
-                            else:
-                                rng = st.slider(
-                                    f"{attr}", 
-                                    min_value=min_val, 
-                                    max_value=max_val, 
-                                    value=(min_val, max_val),
-                                    key=f"slider_{attr}"
-                                )
+                        else:
+                            # --- STANDARD SLIDERS FOR OTHERS ---
+                            try:
+                                c_num = pd.to_numeric(col_data, errors='coerce')
+                                min_val = float(c_num.min())
+                                max_val = float(c_num.max())
                                 
-                                filtered_risk_df = filtered_risk_df[
-                                    (filtered_risk_df[attr] >= rng[0]) & 
-                                    (filtered_risk_df[attr] <= rng[1])
-                                ]
-                        
-                        except Exception as e:
-                            pass
+                                if pd.isna(min_val) or pd.isna(max_val):
+                                     continue
+
+                                if min_val == max_val:
+                                    st.caption(f"{attr}: Constant {min_val}")
+                                else:
+                                    rng = st.slider(
+                                        f"{attr}", 
+                                        min_value=min_val, 
+                                        max_value=max_val, 
+                                        value=(min_val, max_val),
+                                        key=f"slider_{attr}"
+                                    )
+                                    
+                                    filtered_risk_df = filtered_risk_df[
+                                        (filtered_risk_df[attr] >= rng[0]) & 
+                                        (filtered_risk_df[attr] <= rng[1])
+                                    ]
+                            except Exception as e:
+                                pass
 
                 # --- NEW: Group Summary ---
                 st.subheader("📊 Group Summary")
