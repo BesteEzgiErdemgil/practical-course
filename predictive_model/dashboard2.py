@@ -716,8 +716,7 @@ if model_artifact is not None and df is not None:
                             "Schedule Meeting: At-risk Student Intervention Meeting", 
                             "Schedule Meeting: Post-graduation Options", 
                             "Schedule Meeting: Advice of Attendance to Lectures & Tutorials", 
-                            "Notify Tutors About High Risk Students",
-                            "Other (Add Note manually)"
+                            "Notify Tutors About High Risk Students"
                         ]
                         
                         action_type = st.selectbox("Action", common_actions, key="bulk_action_unified")
