@@ -1414,7 +1414,7 @@ if model_artifact is not None and df is not None:
                         st.error(f"Simulation failed: {e}")
 
     with col2:
-        st.subheader("🤖 GenAI Insight")
+        st.subheader("GenAI Insight")
         
         # Prepare data for GenAI
         top_features = list(zip(shap_df['Feature'], shap_df['Impact'])) if not shap_df.empty else []
