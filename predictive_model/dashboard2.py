@@ -469,6 +469,19 @@ if model_artifact is not None and df is not None:
         
         td.index.name = "Student_Index"
         td.to_csv(tracking_file)
+        
+        # --- SYNC SESSION STATE ---
+        # If widgets for these students were already created, update their state
+        # so they reflect the new bulk values immediately.
+        for idx in indices:
+            key_chk = f"trk_chk_{idx}"
+            key_note = f"trk_note_{idx}"
+            
+            if key_chk in st.session_state:
+                st.session_state[key_chk] = (is_tracked == 1)
+            if key_note in st.session_state:
+                st.session_state[key_note] = notes
+                
         return td
 
     # Load initially
