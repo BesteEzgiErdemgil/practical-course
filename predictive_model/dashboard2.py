@@ -1349,7 +1349,7 @@ if model_artifact is not None and df is not None:
         st.markdown("---")
 
         # --- Ceteris Paribus / What-If Analysis (Moved) ---
-        with st.expander("Ceteris Paribus Analysis (What-If?)"):
+        with st.expander("What-If Analysis"):
             # Wrapper for Reset Logic
             def reset_cp_state():
                 keys = ["cp_tuition", "cp_app_mode", "cp_course", "cp_grade1", "cp_grade2", "cp_app1", "cp_app2", "cp_age"]
