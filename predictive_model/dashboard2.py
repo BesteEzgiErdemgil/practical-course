@@ -185,11 +185,17 @@ div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slid
 div[data-testid="stExpander"] div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"]::after {
     content: none !important;
 }
+
+/* Increase Expander Header Font Size */
+div[data-testid="stExpander"] summary p {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # Sidebar
-st.sidebar.header("Configuration")
+st.sidebar.markdown("<h2 style='font-size: 2rem;'>Configuration</h2>", unsafe_allow_html=True)
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------
@@ -1319,11 +1325,13 @@ if model_artifact is not None and df is not None:
                 # Function to calculate consistent height PER PLOT
                 def get_plot_height(n_bars):
                     # Slightly taller to accommodate wrapped text
-                    return max(n_bars * 0.7 + 1.0, 3.0) 
+                    return max(n_bars * 0.7 + 1.5, 3.5) # Increased base height to ensure room for margins
 
-                # CRITICAL: Fixed Left Margin
-                # Using bbox_inches=None in st.pyplot requires us to be very precise with margins
+                # CRITICAL: Fixed Layout Parameters
+                # Using bbox_inches=None requires precise margin control
                 FIXED_LEFT_MARGIN = 0.45 
+                MARGIN_BOTTOM_INCHES = 1.0 # Fixed space for x-axis label
+                MARGIN_TOP_INCHES = 0.3    # Minimal top space
                 
                 # 1. RISK FACTORS
                 st.markdown("#### Factors Increasing Dropout Risk")
@@ -1332,8 +1340,12 @@ if model_artifact is not None and df is not None:
                     # Increased figsize width from 5 to 12
                     fig_r, ax_r = plt.subplots(figsize=(12, h_risk))
                     
+                    # Calculate dynamic fractions
+                    bottom_frac = MARGIN_BOTTOM_INCHES / h_risk
+                    top_frac = 1.0 - (MARGIN_TOP_INCHES / h_risk)
+                    
                     # Force exact same margins for both
-                    fig_r.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=0.9, bottom=0.1)
+                    fig_r.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=top_frac, bottom=bottom_frac)
                     
                     # Wrap labels
                     r_labels = wrap_labels(risk_df['Feature'])
@@ -1367,8 +1379,12 @@ if model_artifact is not None and df is not None:
                     # Increased figsize width from 5 to 12
                     fig_p, ax_p = plt.subplots(figsize=(12, h_prot))
                     
+                    # Calculate dynamic fractions
+                    bottom_frac = MARGIN_BOTTOM_INCHES / h_prot
+                    top_frac = 1.0 - (MARGIN_TOP_INCHES / h_prot)
+                    
                     # Force exact same margins for both
-                    fig_p.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=0.9, bottom=0.1)
+                    fig_p.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=top_frac, bottom=bottom_frac)
                     
                     # Wrap labels
                     p_labels = wrap_labels(protective_df['Feature'])
