@@ -94,8 +94,8 @@ def render_guide():
 
     #### 4. 🧠 Explainability (Why this prediction?)
     *   **SHAP Analysis**: 
-        *   **Red Bars (Risk Factors)**: Characteristics that *increase* the likelihood of dropout.
-        *   **Green Bars (Protective Factors)**: Characteristics that *reduce* risk.
+        *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
+        *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
         *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
 
     #### 5. 🛠️ Simulation (What-If?)
@@ -113,7 +113,7 @@ if not st.session_state.guide_shown:
 # Title
 col_title, col_help = st.columns([0.9, 0.1])
 with col_title:
-    st.title("Student Dropout Risk & Intervention Dashboard")
+    st.title("Student Success & Support Dashboard")
 with col_help:
     st.write("") # Spacer
     st.write("")
@@ -209,36 +209,7 @@ if "high_risk_threshold" not in st.session_state:
 if "low_risk_threshold" not in st.session_state:
     st.session_state.low_risk_threshold = 0.3
 
-# Sidebar button to open modal
-# Sidebar button to open modal
-if st.sidebar.button("AI Threshold Recommendation"):
-    st.session_state.show_threshold_modal = not st.session_state.show_threshold_modal
 
-if st.session_state.show_threshold_modal:
-    st.sidebar.markdown("---")
-    st.sidebar.info("""
-    **🤖 AI Mockup Analysis**
-    
-    The predictive engine suggests optimizing thresholds based on recent 5-fold validation results:
-    
-    *   **High Risk:** `0.70` -> `0.65`
-    *   **Safe:** `0.30` -> `0.35`
-    
-    *Reasoning: Adjusting sensitivity will capture 12% more at-risk students.*
-    """)
-    
-    c1, c2 = st.sidebar.columns(2)
-    with c1:
-        if st.button("Apply"):
-            st.session_state.high_risk_threshold = 0.65
-            st.session_state.low_risk_threshold = 0.35
-            st.session_state.show_threshold_modal = False
-            st.rerun()
-    with c2:
-        if st.button("Dismiss"):
-            st.session_state.show_threshold_modal = False
-            st.rerun()
-    st.sidebar.markdown("---")
 
 
 # Load Data & Model
@@ -435,8 +406,8 @@ if model_artifact is not None and df is not None:
 
         #### 4. 🧠 Explainability (Why this prediction?)
         *   **SHAP Analysis**: 
-            *   **Red Bars (Risk Factors)**: Characteristics that *increase* the likelihood of dropout.
-            *   **Green Bars (Protective Factors)**: Characteristics that *reduce* risk.
+            *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
+            *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
         *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
 
         #### 5. 🛠️ Simulation (What-If?)
@@ -532,6 +503,38 @@ if model_artifact is not None and df is not None:
         0.05
     )
     st.session_state.low_risk_threshold, st.session_state.high_risk_threshold = risk_range
+    
+    
+    # -------------------------------
+    # AI Threshold Recommendation
+    # -------------------------------
+    if st.sidebar.button("AI Threshold Recommendation"):
+        st.session_state.show_threshold_modal = not st.session_state.show_threshold_modal
+
+    if st.session_state.show_threshold_modal:
+        st.sidebar.info("""
+        **🤖 AI Mockup Analysis**
+        
+        The predictive engine suggests optimizing thresholds based on recent validation results:
+        
+        *   **High Risk:** `0.70` -> `0.65`
+        *   **Safe:** `0.30` -> `0.35`
+        
+        *Reasoning: Adjusting sensitivity will capture 12% more at-risk students.*
+        """)
+        
+        c1, c2 = st.sidebar.columns(2)
+        with c1:
+            if st.button("Apply"):
+                st.session_state.high_risk_threshold = 0.65
+                st.session_state.low_risk_threshold = 0.35
+                st.session_state.show_threshold_modal = False
+                st.rerun()
+        with c2:
+            if st.button("Dismiss"):
+                st.session_state.show_threshold_modal = False
+                st.rerun()
+    
 
 
 
@@ -566,8 +569,9 @@ if model_artifact is not None and df is not None:
                 
                 # --- NEW: Group Filters ---
                 # --- NEW: Unified Filter Section ---
-                st.sidebar.markdown("---")
                 # User Request: "course and mode inside... name filter students"
+                st.sidebar.write("") # Padding
+                st.sidebar.write("") # Padding
                 with st.sidebar.expander("Filter Students", expanded=False):
                     
                     # 3. Dynamic Attribute Filters
@@ -687,6 +691,8 @@ if model_artifact is not None and df is not None:
                                         ]
                                 except Exception as e:
                                     pass
+
+                st.sidebar.markdown("---")
 
                 # --- NEW: Group Summary ---
                 st.subheader("📊 Group Summary")
@@ -1217,7 +1223,7 @@ if model_artifact is not None and df is not None:
         # Ceteris Paribus moved below SHAP
 
             
-        st.subheader("Model Explainability (SHAP)")
+        st.subheader("Risk Score Explanation")
         with st.spinner("Calculating SHAP values..."):
             # Pass the dictionary artifact to calculate_shap_values so it can handle the logic
             # Use a sample of X for background
@@ -1320,7 +1326,7 @@ if model_artifact is not None and df is not None:
                 FIXED_LEFT_MARGIN = 0.45 
                 
                 # 1. RISK FACTORS
-                st.markdown("#### Risk Factors")
+                st.markdown("#### Factors Increasing Dropout Risk")
                 if not risk_df.empty:
                     h_risk = get_plot_height(len(risk_df))
                     # Increased figsize width from 5 to 12
@@ -1349,13 +1355,13 @@ if model_artifact is not None and df is not None:
                     # CRITICAL: bbox_inches=None prevents re-cropping that ruins alignment
                     st.pyplot(fig_r, use_container_width=True, bbox_inches=None)
                 else:
-                    st.info("No major risk factors found.")
+                    st.info("No major Factors Increasing Dropout Risk found.")
                     
                 st.write("") # Spacer
                 st.write("") 
                         
                 # 2. PROTECTIVE FACTORS (Stacked below)
-                st.markdown("#### Protective Factors")
+                st.markdown("#### Factors Reducing Dropout Risk")
                 if not protective_df.empty:
                     h_prot = get_plot_height(len(protective_df))
                     # Increased figsize width from 5 to 12
@@ -1385,7 +1391,7 @@ if model_artifact is not None and df is not None:
                     # CRITICAL: bbox_inches=None prevents re-cropping that ruins alignment
                     st.pyplot(fig_p, use_container_width=True, bbox_inches=None)
                 else:
-                    st.info("No major protective factors found.")
+                    st.info("No major Factors Reducing Dropout Risk found.")
             else:
                 st.info("No significant features influenced this prediction.")
         

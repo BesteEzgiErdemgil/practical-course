@@ -101,13 +101,12 @@ def generate_genai_explanation(student_id, risk_prob, top_features):
     
     risk_level = "High" if risk_prob > 0.6 else "Medium" if risk_prob > 0.3 else "Low"
     
-    explanation = f"""
-    **Student Analysis (ID: {student_id})**
+    explanation = f"""**Student Analysis (ID: {student_id})**
     
-    **Risk Level:** {risk_level} ({risk_prob:.1%})
-    
-    **Key Drivers:**
-    """
+**Risk Level:** {risk_level} ({risk_prob:.1%})
+
+**Key Drivers:**
+"""
     
     for feature, impact in top_features[:3]:
         direction = "increases risk" if impact > 0 else "decreases risk"
