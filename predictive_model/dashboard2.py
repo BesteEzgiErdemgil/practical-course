@@ -751,17 +751,34 @@ if model_artifact is not None and df is not None:
                             label_visibility="collapsed"
                         )
                         
-                        # Unified Action List
-                        common_actions = [
-                            "Schedule Meeting: At-risk Student Intervention Meeting", 
-                            "Schedule Meeting: Post-graduation Options", 
-                            "Schedule Meeting: Advice of Attendance to Lectures & Tutorials", 
-                            "Notify Tutors About High Risk Students"
-                        ]
+                        # Unified Action List - Mapped by Target Group
+                        action_map = {
+                            "High Risk": [
+                                "Create Academic Recovery Plan",
+                                "Assign Mandatory Tutoring Sessions",
+                                "Send Academic Improvement Resources",
+                                "Schedule Meeting: At-risk Student Intervention Meeting",
+                                "Notify Tutors About High Risk Students"
+                            ],
+                            "Medium Risk": [
+                                "Create Academic Recovery Plan",
+                                "Send Early Warning Notification to Student",
+                                "Send Academic Improvement Resources",
+                                "Schedule Meeting: Advice of Attendance to Lectures & Tutorials"
+                            ],
+                            "Likely Graduates": [ # Low Risk
+                                "Send Academic Improvement Resources",
+                                "Send Graduation Requirements Checklist",
+                                "Career Planning Session"
+                            ],
+                            "Dean's List Students": [
+                                "Recommend Mentorship Roles for High Risk Students",
+                                "Send E-Mail: Dean's List Acceptance"
+                            ]
+                        }
 
-                        # Special Logic for Dean's List
-                        if target_group == "Dean's List Students":
-                            common_actions = ["Send E-Mail: Dean's List Acceptance"]
+                        # Get actions for selected group, default to empty if not found
+                        common_actions = action_map.get(target_group, [])
                         
                         action_type = st.selectbox("Action", common_actions, key="bulk_action_unified")
 
