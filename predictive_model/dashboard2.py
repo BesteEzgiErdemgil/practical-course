@@ -72,33 +72,33 @@ def render_guide():
     This tool is designed to help you identify students at risk of dropout early and take proactive measures. 
     Here is a quick overview of how to navigate and use the features:
 
-    #### 1. 📂 Data & Configuration (Sidebar)
+    #### 1. Data & Configuration (Sidebar)
     *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
         *   Students with risk **above** the red threshold are flagged as **High Risk**.
         *   Students **below** the green threshold are **Low Risk**.
         *   Those in between are marked as **Medium Risk**.
     *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
 
-    #### 2. 🔍 Filters & List View
+    #### 2. Filters & List View
     *   **Filter Students**: Use the "Filter Students" dropdown to narrow down the list by *Course*, *Application Mode*, or other attributes like *Tuition Status*.
     *   **Student List**: The table shows students matching your filters.
         *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
         *   **Tracking**: Blue rows indicate students you have already marked/tracked.
-        *   **Select**: Use the Select button to view the student's profile by a specific student index.
+        *   **Select**: Click a row to view the detailed profile.
 
-    #### 3. 👤 Student Profile & Analysis
+    #### 3. Student Profile & Analysis
     Once a student is selected, you will see:
-    *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
-    *   **Risk Status**: A badge indicating if they are High Risk, Medium Risk, or Low Risk.
+    *   **Profile Card**: Key academic indicators (Grades, Lectures Enrolled/Passed, Tuition status).
+    *   **Risk Status**: A badge indicating if they are High, Medium or Low Risk.
     *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
 
-    #### 4. 🧠 Explainability (Why this prediction?)
+    #### 4. Explainability (Why this prediction?)
     *   **SHAP Analysis**: 
         *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
         *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
-        *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
+    *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
 
-    #### 5. 🛠️ Simulation (What-If?)
+    #### 5. Simulation (What-If?)
     *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
     *   See immediate feedback on how the risk score changes.
 
@@ -390,33 +390,33 @@ if model_artifact is not None and df is not None:
         This tool is designed to help you identify students at risk of dropout early and take proactive measures. 
         Here is a quick overview of how to navigate and use the features:
 
-        #### 1. 📂 Data & Configuration (Sidebar)
+        #### 1. Data & Configuration (Sidebar)
         *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
             *   Students with risk **above** the red threshold are flagged as **High Risk**.
             *   Students **below** the green threshold are **Low Risk**.
             *   Those in between are marked as **Medium Risk**.
         *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
 
-        #### 2. 🔍 Filters & List View
+        #### 2. Filters & List View
         *   **Filter Students**: Use the "Filter Students" dropdown to narrow down the list by *Course*, *Application Mode*, or other attributes like *Tuition Status*.
         *   **Student List**: The table shows students matching your filters.
             *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
             *   **Tracking**: Blue rows indicate students you have already marked/tracked.
             *   **Select**: Click a row to view the detailed profile.
 
-        #### 3. 👤 Student Profile & Analysis
+        #### 3. Student Profile & Analysis
         Once a student is selected, you will see:
-        *   **Profile Card**: Key academic indicators (Grades, Units, Tuition status).
+        *   **Profile Card**: Key academic indicators (Grades, Lectures Enrolled/Passed, Tuition status).
         *   **Risk Status**: A badge indicating if they are High, Medium or Low Risk.
         *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
 
-        #### 4. 🧠 Explainability (Why this prediction?)
+        #### 4. Explainability (Why this prediction?)
         *   **SHAP Analysis**: 
             *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
             *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
         *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
 
-        #### 5. 🛠️ Simulation (What-If?)
+        #### 5. Simulation (What-If?)
         *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
         *   See immediate feedback on how the risk score changes.
 
