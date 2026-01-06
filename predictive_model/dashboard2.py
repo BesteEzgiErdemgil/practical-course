@@ -445,7 +445,7 @@ if model_artifact is not None and df is not None:
         td.to_csv(tracking_file)
         return td
 
-    def bulk_update_tracking(indices, notes):
+    def bulk_update_tracking(indices, notes, is_tracked=1):
         # Load current
         td = load_tracking_data()
         
@@ -464,7 +464,7 @@ if model_artifact is not None and df is not None:
             td = pd.concat([td, new_rows])
         
         # Now safely update
-        td.loc[indices, "Is_Tracked"] = 1
+        td.loc[indices, "Is_Tracked"] = is_tracked
         td.loc[indices, "Notes"] = notes
         
         td.index.name = "Student_Index"
@@ -750,7 +750,7 @@ if model_artifact is not None and df is not None:
                             if st.button(f"Execute Action"):
                                     # SYNC: Update tracking for all these students
                                     target_indices = target_df.index.tolist()
-                                    bulk_update_tracking(target_indices, action_type)
+                                    bulk_update_tracking(target_indices, action_type, is_tracked=1)
                                     
                                     if target_group == "Likely Graduates":
                                         st.balloons()
@@ -759,6 +759,13 @@ if model_artifact is not None and df is not None:
                                         
                                     st.success(f"'{action_type}' queued for {target_count} students.")
                                     st.rerun()
+                            
+                            # Reset Button
+                            if st.button("Reset Tracking", help="Clear tracking status and notes for these students"):
+                                target_indices = target_df.index.tolist()
+                                bulk_update_tracking(target_indices, "", is_tracked=0)
+                                st.success(f"Tracking reset for {target_count} students.")
+                                st.rerun()
                         else:
                             st.info(f"No students found in {target_group}.")
                         
@@ -1159,6 +1166,16 @@ if model_artifact is not None and df is not None:
                      key=key_notes,
                      on_change=on_track_change
                  )
+                 
+                 # Reset Button
+                 def reset_single_student_tracking():
+                     # Update session state
+                     if key_track in st.session_state: st.session_state[key_track] = False
+                     if key_notes in st.session_state: st.session_state[key_notes] = ""
+                     # Update persistent data
+                     save_tracking_data(selected_student_index, False, "")
+                 
+                 st.button("Reset", key=f"reset_trk_{selected_student_index}", help="Clear tracking and notes", on_click=reset_single_student_tracking)
 
         st.markdown("---")
         # Ceteris Paribus moved below SHAP
