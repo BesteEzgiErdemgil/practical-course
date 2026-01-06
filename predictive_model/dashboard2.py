@@ -1275,6 +1275,12 @@ if model_artifact is not None and df is not None:
                 risk_df = shap_df[shap_df["Impact"] > 0].sort_values("Impact", ascending=True)
                 protective_df = shap_df[shap_df["Impact"] < 0].sort_values("Impact", ascending=False)
                 
+                import textwrap
+                
+                # Helper to wrap long labels
+                def wrap_labels(labels, width=50):
+                    return [textwrap.fill(label, width) for label in labels]
+
                 # Unified Scale calculation
                 max_val = 0
                 if not shap_df.empty:
@@ -1283,12 +1289,13 @@ if model_artifact is not None and df is not None:
                 
                 # Function to calculate consistent height PER PLOT
                 def get_plot_height(n_bars):
-                    return max(n_bars * 0.5 + 2.0, 3.0) # Increased base height slightly
+                    # Slightly taller to accommodate wrapped text
+                    return max(n_bars * 0.7 + 1.0, 3.0) 
 
-                # Adjusted margin for wider full-width plots
-                # Width increased to 12, so usage of 0.2 gives ~2.4 inches for labels (similar to previous 0.4 * 5 = 2.0)
-                margin_left = 0.25 
-
+                # CRITICAL: Fixed Left Margin
+                # Using bbox_inches=None in st.pyplot requires us to be very precise with margins
+                FIXED_LEFT_MARGIN = 0.45 
+                
                 # 1. RISK FACTORS
                 st.markdown("#### Risk Factors")
                 if not risk_df.empty:
@@ -1296,21 +1303,28 @@ if model_artifact is not None and df is not None:
                     # Increased figsize width from 5 to 12
                     fig_r, ax_r = plt.subplots(figsize=(12, h_risk))
                     
-                    fig_r.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
+                    # Force exact same margins for both
+                    fig_r.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=0.9, bottom=0.1)
                     
-                    ax_r.barh(risk_df['Feature'], risk_df['Impact'], color='red', height=0.6)
+                    # Wrap labels
+                    r_labels = wrap_labels(risk_df['Feature'])
+                    
+                    ax_r.barh(r_labels, risk_df['Impact'], color='#FF4B4B', height=0.6) # Streamlit Red
                     ax_r.set_xlim([0, limit])
                     ax_r.set_xlabel("Impact (Increases Risk)")
                     
                     # Spines - Clean
                     ax_r.spines['right'].set_visible(False)
                     ax_r.spines['top'].set_visible(False)
+                    ax_r.spines['left'].set_visible(True)
+                    ax_r.spines['left'].set_color('#333333')
                     
                     # Increase tick label size for "Bigger" feel
                     ax_r.tick_params(axis='both', which='major', labelsize=11)
                     ax_r.xaxis.label.set_size(12)
                     
-                    st.pyplot(fig_r, use_container_width=True)
+                    # CRITICAL: bbox_inches=None prevents re-cropping that ruins alignment
+                    st.pyplot(fig_r, use_container_width=True, bbox_inches=None)
                 else:
                     st.info("No major risk factors found.")
                     
@@ -1324,14 +1338,19 @@ if model_artifact is not None and df is not None:
                     # Increased figsize width from 5 to 12
                     fig_p, ax_p = plt.subplots(figsize=(12, h_prot))
                     
-                    fig_p.subplots_adjust(left=margin_left, right=0.95, top=0.9, bottom=0.1)
+                    # Force exact same margins for both
+                    fig_p.subplots_adjust(left=FIXED_LEFT_MARGIN, right=0.95, top=0.9, bottom=0.1)
                     
-                    ax_p.barh(protective_df['Feature'], protective_df['Impact'], color='green', height=0.6)
+                    # Wrap labels
+                    p_labels = wrap_labels(protective_df['Feature'])
+                    
+                    ax_p.barh(p_labels, protective_df['Impact'], color='#2E7D32', height=0.6) # Dark Green
                     ax_p.set_xlim([0, -limit]) 
                     ax_p.set_xlabel("Impact (Reduces Risk)")
                     
                     # Spines - Clean
                     ax_p.spines['left'].set_visible(True) 
+                    ax_p.spines['left'].set_color('#333333')
                     ax_p.spines['right'].set_visible(False)
                     ax_p.spines['top'].set_visible(False)
                     ax_p.yaxis.tick_left()
@@ -1340,7 +1359,8 @@ if model_artifact is not None and df is not None:
                     ax_p.tick_params(axis='both', which='major', labelsize=11)
                     ax_p.xaxis.label.set_size(12)
                     
-                    st.pyplot(fig_p, use_container_width=True)
+                    # CRITICAL: bbox_inches=None prevents re-cropping that ruins alignment
+                    st.pyplot(fig_p, use_container_width=True, bbox_inches=None)
                 else:
                     st.info("No major protective factors found.")
             else:
