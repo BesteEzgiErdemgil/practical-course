@@ -938,7 +938,8 @@ if model_artifact is not None and df is not None:
                 with st.expander("Show/Hide Columns"):
                     st.multiselect(
                         "Select Columns to Display", 
-                        options=display_candidates, 
+                        options=display_candidates,
+                        format_func=lambda x: clean_feature_name(x),
                         key="risk_list_display_cols"
                     )
                     if not st.session_state.risk_list_display_cols:
