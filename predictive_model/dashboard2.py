@@ -62,10 +62,39 @@ st.set_page_config(page_title="Student Success Dashboard (v2 - 5Fold)", layout="
 # --- Session State Init ---
 if "guide_shown" not in st.session_state:
     st.session_state.guide_shown = False
+if "welcome_shown" not in st.session_state:
+    st.session_state.welcome_shown = False
+
+@st.dialog("Welcome to Student Success Dashboard", width="large")
+def render_welcome():
+    """Renders a brief welcome popup explaining the dashboard's purpose and benefits."""
+    st.markdown("""
+    ### Empowering Counselors with Data-Driven Student Support
+    
+    This dashboard helps you **identify at-risk students early** and **take proactive interventions** to improve student success and retention rates.
+    
+    #### What This Dashboard Does:
+    
+    **🎯 Risk Prediction**: Uses machine learning to predict which students are at risk of dropping out based on academic performance, enrollment data, and other key factors.
+    
+    **📊 Prioritized Student Lists**: Automatically sorts and highlights students by risk level (High/Medium/Low) so you can focus your efforts where they matter most.
+    
+    **🔍 Explainable AI**: Shows you exactly *why* each student is flagged as at-risk, with clear visualizations of contributing factors.
+    
+    **💡 What-If Scenarios**: Test interventions before implementing them - see how improving grades, paying tuition, or other changes would affect a student's risk.
+    
+    **📝 Tracking & Notes**: Mark students you're working with and keep intervention notes organized in one place.
+    
+    **🎓 Group Interventions**: Target entire groups of at-risk students with coordinated support strategies.
+    
+    ---
+    
+    **Click the ❓ button in the top-right corner anytime for a detailed guide on how to use each feature.**
+    """)
 
 @st.dialog("Dashboard Guide", width="large")
 def render_guide():
-    """Renders the dashboard explanation overlay."""
+    """Renders the detailed dashboard guide."""
     st.markdown("""
     ### Welcome to the Student Success Dashboard!
     
@@ -105,10 +134,17 @@ def render_guide():
     ---
     """)
 
-# Auto-Show on First Load
-if not st.session_state.guide_shown:
-    st.session_state.guide_shown = True
-    render_guide()
+# Auto-Show Welcome on First Load
+if not st.session_state.welcome_shown:
+    st.session_state.welcome_shown = True
+    st.session_state.show_welcome_dialog = True
+else:
+    if "show_welcome_dialog" not in st.session_state:
+        st.session_state.show_welcome_dialog = False
+
+# Initialize guide dialog state
+if "show_guide_dialog" not in st.session_state:
+    st.session_state.show_guide_dialog = False
 
 # Title
 col_title, col_help = st.columns([0.9, 0.1])
@@ -118,7 +154,17 @@ with col_help:
     st.write("") # Spacer
     st.write("")
     if st.button("❓", help="Open Dashboard Guide"):
-        render_guide()
+        st.session_state.show_guide_dialog = True
+        st.session_state.show_welcome_dialog = False  # Ensure only one dialog
+        st.rerun()
+
+# Render dialogs based on state (only one can be True at a time)
+if st.session_state.show_welcome_dialog:
+    st.session_state.show_welcome_dialog = False  # Reset for next run
+    render_welcome()
+elif st.session_state.show_guide_dialog:
+    st.session_state.show_guide_dialog = False  # Reset for next run
+    render_guide()
 
 st.markdown("---")
 
@@ -380,53 +426,6 @@ if model_artifact is not None and df is not None:
                 return pd.DataFrame(columns=["Is_Tracked", "Notes"])
         else:
             return pd.DataFrame(columns=["Is_Tracked", "Notes"])
-
-    @st.dialog("Dashboard Guide", width="large")
-    def render_guide():
-        """Renders the dashboard explanation overlay."""
-        st.markdown("""
-        ### Welcome to the Student Success Dashboard!
-        
-        This tool is designed to help you identify students at risk of dropout early and take proactive measures. 
-        Here is a quick overview of how to navigate and use the features:
-
-        #### 1. Data & Configuration (Sidebar)
-        *   **Risk Thresholds**: Adjust the `Low` and `High` risk sliders. 
-            *   Students with risk **above** the red threshold are flagged as **High Risk**.
-            *   Students **below** the green threshold are **Low Risk**.
-            *   Those in between are marked as **Medium Risk**.
-        *   **AI Recommendations**: Click "AI Threshold Recommendation" to let the system suggest optimal risk cutoffs based on recent validation data.
-
-        #### 2. Filters & List View
-        *   **Filter Students**: Use the "Filter Students" dropdown to narrow down the list by *Course*, *Application Mode*, or other attributes like *Tuition Status*.
-        *   **Student List**: The table shows students matching your filters.
-            *   **Highlights**: Risk Percentages are colored based on risk (Green/Yellow/Red).
-            *   **Tracking**: Blue rows indicate students you have already marked/tracked.
-            *   **Select**: Click a row to view the detailed profile.
-
-        #### 3. Student Profile & Analysis
-        Once a student is selected, you will see:
-        *   **Profile Card**: Key academic indicators (Grades, Lectures Enrolled/Passed, Tuition status).
-        *   **Risk Status**: A badge indicating if they are High, Medium or Low Risk.
-        *   **Tracking/Action**: Mark a student as "Tracked" and leave notes (e.g., "Meeting scheduled").
-
-        #### 4. Explainability (Why this prediction?)
-        *   **SHAP Analysis**: 
-            *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
-            *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
-        *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
-
-        #### 5. Simulation (What-If?)
-        *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
-        *   See immediate feedback on how the risk score changes.
-
-        ---
-        """)
-
-    # Auto-Show on First Load
-    if not st.session_state.guide_shown:
-        st.session_state.guide_shown = True
-        render_guide()
 
     def save_tracking_data(index, is_tracked, notes):
         # Load current
