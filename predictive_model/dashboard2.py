@@ -69,27 +69,27 @@ if "welcome_shown" not in st.session_state:
 def render_welcome():
     """Renders a brief welcome popup explaining the dashboard's purpose and benefits."""
     st.markdown("""
-    ### Empowering Counselors with Data-Driven Student Support
+    ### Supporting Counselors in Identifying and Assisting At-Risk Students
     
-    This dashboard helps you **identify at-risk students early** and **take proactive interventions** to improve student success and retention rates.
+    This dashboard helps you identify at-risk students early and take proactive interventions to improve student success.
     
     #### What This Dashboard Does:
     
-    **🎯 Risk Prediction**: Uses machine learning to predict which students are at risk of dropping out based on academic performance, enrollment data, and other key factors.
+    **Risk Prediction**: Predicts which students are at risk of dropping out based on academic performance, enrollment data, and other key factors.
     
-    **📊 Prioritized Student Lists**: Automatically sorts and highlights students by risk level (High/Medium/Low) so you can focus your efforts where they matter most.
+    **Prioritized Student Lists**: Automatically sorts and categorizes students by risk level (High/Medium/Low) so you can focus your efforts where they matter most. Customized sorting is also enabled.
     
-    **🔍 Explainable AI**: Shows you exactly *why* each student is flagged as at-risk, with clear visualizations of contributing factors.
+    **Tracking & Notes**: Mark students you've tracked and keep intervention notes organized in one place.
     
-    **💡 What-If Scenarios**: Test interventions before implementing them - see how improving grades, paying tuition, or other changes would affect a student's risk.
+    **Group Interventions**: Target entire groups of at-risk students with corresponding support strategies.
     
-    **📝 Tracking & Notes**: Mark students you're working with and keep intervention notes organized in one place.
+    **Explainable AI**: Shows you exactly why each student is flagged as at-risk, with clear visualizations of contributing factors.
     
-    **🎓 Group Interventions**: Target entire groups of at-risk students with coordinated support strategies.
+    **What-If Scenarios**: You can play with variables and observe how the risk score changes.
     
     ---
     
-    **Click the ❓ button in the top-right corner anytime for a detailed guide on how to use each feature.**
+    Click the ❓ button in the top-right corner anytime for a detailed guide on how to use each feature.
     """)
 
 @st.dialog("Dashboard Guide", width="large")
