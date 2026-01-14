@@ -1651,6 +1651,7 @@ if model_artifact is not None and df is not None:
         # 1. Initial Analysis
         explanation = generate_genai_explanation(selected_student_index, dropout_prob, top_features)
         st.info(explanation)
+        st.caption("*Disclaimer: AI-generated insights may be inaccurate. Verify with professional judgment.*")
         
         # 2. Interactive Chat
         st.divider()
