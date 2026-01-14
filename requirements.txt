@@ -7,4 +7,3 @@ matplotlib
 pygam
 scikit-learn
 openai
-python-dotenv

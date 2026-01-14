@@ -7,12 +7,6 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import subprocess
-from dotenv import load_dotenv
-
-# Load environment variables
-# Path to .env file relative to this script: ../.env/.env
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env', '.env')
-load_dotenv(dotenv_path=env_path)
 
 # Add current directory to path to import local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
