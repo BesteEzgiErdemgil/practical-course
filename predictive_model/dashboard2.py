@@ -546,7 +546,7 @@ if model_artifact is not None and df is not None:
 
     if st.session_state.show_threshold_modal:
         st.sidebar.info("""
-        **🤖 AI Mockup Analysis**
+        **AI Mockup Analysis**
         
         The predictive engine suggests optimizing thresholds based on recent validation results:
         
