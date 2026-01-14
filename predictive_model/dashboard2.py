@@ -152,11 +152,31 @@ def render_guide():
     *   **Risk Score Explanation**: 
         *   **Red Bars (Factors Increasing Dropout Risk)**: Characteristics that *increase* the likelihood of dropout.
         *   **Green Bars (Factors Reducing Dropout Risk)**: Characteristics that *reduce* risk.
-    *   **GenAI Insight**: A text summary explaining the student's situation in plain language.
+    *   **GenAI Insight**: An AI-generated text summary explaining the student's situation in plain language, highlighting key risk factors and protective factors.
 
-    #### 5. Simulation (What-If?)
-    *   Test hypothetical scenarios: *"What if this student pays their tuition?"* or *"What if their grades improve?"* 
-    *   See immediate feedback on how the risk score changes.
+    #### 5. GenAI Insight Chatbot
+    *   **Interactive Q&A**: Ask follow-up questions about the selected student in natural language.
+    *   **Context-Aware Responses**: The chatbot has access to the student's complete profile, including grades, enrollment data, risk factors, and SHAP analysis.
+    *   **Examples**: Ask questions like *"Why are their grades low?"*, *"What interventions would help most?"*, or *"How does their age affect dropout risk?"*
+
+    #### 6. Intervention Support Tools
+    *   **Generate Email Draft**: Automatically creates a personalized, professional outreach email tailored to the student's specific situation and risk profile.
+    *   **Generate Action Plan**: Creates a concrete 3-step intervention plan for counselors, incorporating:
+        *   Specific actions from the recommended group interventions for that risk level.
+        *   Personalized recommendations based on the student's key risk factors (e.g., grade support, tuition assistance).
+        *   Actionable, practical steps you can implement immediately.
+
+    #### 7. What-If Analysis (Ceteris Paribus)
+    *   **Simulate Scenarios**: Test hypothetical changes to student attributes such as:
+        *   Tuition payment status
+        *   Course enrollment
+        *   Semester grades
+        *   Application mode
+        *   Age at enrollment
+    *   **Immediate Risk Feedback**: See how the risk score changes with each simulation.
+    *   **AI Simulation Analysis**: After running a simulation, receive an AI-generated explanation that:
+        *   Interprets *why* the risk changed based on the modified attributes.
+        *   Identifies which specific attributes contributed most to the change in risk score.
 
     ---
     """)
