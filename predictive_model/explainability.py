@@ -180,5 +180,5 @@ Task:
         explanation += "_AI explanation unavailable. Please check API configuration._"
         return explanation
     
-    return f"### AI Simulation Analysis\n\n**Result:** Risk {direction} by **{abs(improvement):.1%}**.\n\n{response}\n\n<small>*Disclaimer: AI-generated insights may be inaccurate. Verify with professional judgment.*</small>"
+    return f"### AI Simulation Analysis\n\n**Result:** Risk {direction} by **{abs(improvement):.1%}**.\n\n{response}\n\n_*Disclaimer: AI-generated insights may be inaccurate. Verify with professional judgment.*_"
 
