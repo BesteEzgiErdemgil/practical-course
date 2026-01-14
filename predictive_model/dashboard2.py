@@ -1478,6 +1478,7 @@ if model_artifact is not None and df is not None:
                     if k in st.session_state:
                         del st.session_state[k]
                 st.session_state.last_cp_student = selected_student_index
+                st.rerun() # Force rerun to ensure widgets pick up new values
             
             # Wrapper for Reset Logic
             def reset_cp_state():
