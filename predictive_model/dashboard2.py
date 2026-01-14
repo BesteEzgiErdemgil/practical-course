@@ -59,6 +59,32 @@ course_map = {
 # Page Config
 st.set_page_config(page_title="Student Success Dashboard (v2 - 5Fold)", layout="wide")
 
+# --- Global Action Map ---
+action_map = {
+    "High Risk": [
+        "Create Academic Recovery Plan",
+        "Assign Mandatory Tutoring Sessions",
+        "Send Academic Improvement Resources",
+        "Schedule Meeting: At-risk Student Intervention Meeting",
+        "Notify Tutors About High Risk Students"
+    ],
+    "Medium Risk": [
+        "Create Academic Recovery Plan",
+        "Send Early Warning Notification to Student",
+        "Send Academic Improvement Resources",
+        "Schedule Meeting: Advice of Attendance to Lectures & Tutorials"
+    ],
+    "Likely Graduates": [ # Low Risk
+        "Send Academic Improvement Resources",
+        "Send Graduation Requirements Checklist",
+        "Career Planning Session"
+    ],
+    "Dean's List Students": [
+        "Recommend Mentorship Roles for High Risk Students",
+        "Send E-Mail: Dean's List Acceptance"
+    ]
+}
+
 # Title
 # --- Session State Init ---
 if "guide_shown" not in st.session_state:
@@ -825,30 +851,8 @@ if model_artifact is not None and df is not None:
                         )
                         
                         # Unified Action List - Mapped by Target Group
-                        action_map = {
-                            "High Risk": [
-                                "Create Academic Recovery Plan",
-                                "Assign Mandatory Tutoring Sessions",
-                                "Send Academic Improvement Resources",
-                                "Schedule Meeting: At-risk Student Intervention Meeting",
-                                "Notify Tutors About High Risk Students"
-                            ],
-                            "Medium Risk": [
-                                "Create Academic Recovery Plan",
-                                "Send Early Warning Notification to Student",
-                                "Send Academic Improvement Resources",
-                                "Schedule Meeting: Advice of Attendance to Lectures & Tutorials"
-                            ],
-                            "Likely Graduates": [ # Low Risk
-                                "Send Academic Improvement Resources",
-                                "Send Graduation Requirements Checklist",
-                                "Career Planning Session"
-                            ],
-                            "Dean's List Students": [
-                                "Recommend Mentorship Roles for High Risk Students",
-                                "Send E-Mail: Dean's List Acceptance"
-                            ]
-                        }
+                        # action_map is now global
+
 
                         # Get actions for selected group, default to empty if not found
                         common_actions = action_map.get(target_group, [])
@@ -1775,17 +1779,46 @@ IMPORTANT:
         
         int_col1, int_col2 = st.columns(2)
         
-        # Build context for intervention generation
-        risk_level = "High Risk" if dropout_prob > st.session_state.high_risk_threshold else "Medium Risk" if dropout_prob > st.session_state.low_risk_threshold else "Low Risk"
-        factors_text = "\n".join([f"- {f}: {v:.3f}" for f, v in top_features[:5]])
-        student_context = f"Student ID: {selected_student_index}\nRisk: {risk_level} ({dropout_prob:.1%})\nKey Factors:\n{factors_text}"
+        # Build richer context for intervention generation
+        risk_level_text = "High Risk" if dropout_prob > st.session_state.high_risk_threshold else "Medium Risk" if dropout_prob > st.session_state.low_risk_threshold else "Low Risk"
+        
+        # Get Available Actions from Global Map
+        available_group_actions = action_map.get(risk_level_text, [])
+        actions_list_str = "\n".join([f"- {a}" for a in available_group_actions])
+        
+        # Re-construct context string (reusing logic from Chat above for consistency)
+        student_full_profile_str = f"""=== STUDENT PROFILE ===
+Student ID: {selected_student_index}
+Risk Level: {risk_level_text} ({dropout_prob:.1%})
+
+Course: {d_course}
+Application Mode: {d_app_mode}
+Age at Enrollment: {v_age}
+Tuition Status: {v_t_status}
+
+1st Semester:
+- Average Grade: {v_g1}/20
+- Lectures Enrolled: {v_e1}
+- Lectures Passed: {v_a1}
+
+2nd Semester:
+- Average Grade: {v_g2}/20
+- Lectures Enrolled: {v_e2}
+- Lectures Passed: {v_a2}
+
+=== KEY RISK/PROTECTIVE FACTORS (SHAP) ===
+"""
+        for f, v in top_features[:5]:
+             direction = "↑ increases risk" if v > 0 else "↓ decreases risk"
+             student_full_profile_str += f"- {f}: {v:.3f} ({direction})\n"
+
         
         with int_col1:
             if st.button("📧 Generate Email Draft", key=f"email_btn_{selected_student_index}"):
                 with st.spinner("Drafting email..."):
                     email_prompt = [
-                        {"role": "system", "content": "You are an expert university counselor. Draft a professional, empathetic email to invite this student to a support meeting. Be warm but concise. Include a suggested meeting time placeholder."},
-                        {"role": "user", "content": f"Draft an outreach email for this student:\n\n{student_context}"}
+                        {"role": "system", "content": "You are an expert university counselor. Draft a professional, empathetic email to invite this student to a support meeting. Be warm but concise. Include a suggested meeting time placeholder. Use the specific student data (Course, Grades) to make it personal and relevant."},
+                        {"role": "user", "content": f"Draft an outreach email for this student based on their specific profile:\n\n{student_full_profile_str}"}
                     ]
                     email_draft = get_chat_response(email_prompt)
                     st.session_state[f"email_draft_{selected_student_index}"] = email_draft
@@ -1794,8 +1827,18 @@ IMPORTANT:
             if st.button("📋 Generate Action Plan", key=f"plan_btn_{selected_student_index}"):
                 with st.spinner("Creating action plan..."):
                     plan_prompt = [
-                        {"role": "system", "content": "You are an expert academic advisor. Create a concise 3-step intervention action plan for a counselor to help this at-risk student. Be specific and actionable."},
-                        {"role": "user", "content": f"Create an intervention plan for this student:\n\n{student_context}"}
+                        {"role": "system", "content": f"""You are an expert academic advisor. Create a concise 3-step intervention action plan for a counselor.
+                        
+IMPORTANT INSTRUCTIONS:
+1. Review the 'Available Group Interventions' list provided below.
+2. If appropriate, Incorporate 1 or 2 specific actions from that list into your plan.
+3. Make the actions specific to the student's situation (e.g. if grades are low, mention specific support).
+4. Be actionable and direct.
+
+AVAILABLE GROUP INTERVENTIONS ({risk_level_text}):
+{actions_list_str}
+"""},
+                        {"role": "user", "content": f"Create an intervention plan for this student:\n\n{student_full_profile_str}"}
                     ]
                     action_plan = get_chat_response(plan_prompt)
                     st.session_state[f"action_plan_{selected_student_index}"] = action_plan
