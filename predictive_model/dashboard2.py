@@ -159,14 +159,7 @@ def render_guide():
     *   **Context-Aware Responses**: The chatbot has access to the student's complete profile, including grades, enrollment data, risk factors, and SHAP analysis.
     *   **Examples**: Ask questions like *"Why are their grades low?"*, *"What interventions would help most?"*, or *"How does their age affect dropout risk?"*
 
-    #### 6. Intervention Support Tools
-    *   **Generate Email Draft**: Automatically creates a personalized, professional outreach email tailored to the student's specific situation and risk profile.
-    *   **Generate Action Plan**: Creates a concrete 3-step intervention plan for counselors, incorporating:
-        *   Specific actions from the recommended group interventions for that risk level.
-        *   Personalized recommendations based on the student's key risk factors (e.g., grade support, tuition assistance).
-        *   Actionable, practical steps you can implement immediately.
-
-    #### 7. What-If Analysis (Ceteris Paribus)
+    #### 6. What-If Analysis (Ceteris Paribus)
     *   **Simulate Scenarios**: Test hypothetical changes to student attributes such as:
         *   Tuition payment status
         *   Course enrollment
@@ -1081,7 +1074,7 @@ if model_artifact is not None and df is not None:
     # Moved to Student Profile section
 
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([1, 1])
     
     with col1:
         st.subheader(f"Student Profile (ID: {selected_student_index})")
@@ -1655,7 +1648,7 @@ if model_artifact is not None and df is not None:
         
         # 2. Interactive Chat
         st.divider()
-        st.caption("💬 **Ask follow-up questions**")
+        st.subheader("AI Chatbot")
         
         # Unique key for this student's chat
         chat_key = f"chat_{selected_student_index}"
@@ -1735,104 +1728,7 @@ IMPORTANT:
             st.session_state[f"gen_resp_{selected_student_index}"] = False
             st.rerun()
         
-        # --- PHASE 4: INTERVENTION GUIDANCE ---
-        st.divider()
-        st.subheader("Intervention Support Tools")
-        
-        int_col1, int_col2 = st.columns(2)
-        
-        # Build richer context for intervention generation
-        risk_label_for_actions = ""
-        risk_label_display = ""
-        
-        if dropout_prob > st.session_state.high_risk_threshold:
-             risk_label_for_actions = "High Risk"
-             risk_label_display = "High Risk"
-        elif dropout_prob > st.session_state.low_risk_threshold:
-             risk_label_for_actions = "Medium Risk"
-             risk_label_display = "Medium Risk"
-        else:
-             # Low Risk Logic
-             if dropout_prob < 0.05:
-                 risk_label_for_actions = "Dean's List Students"
-                 risk_label_display = "Dean's List Possible (Low Risk)"
-             else:
-                 risk_label_for_actions = "Likely Graduates"
-                 risk_label_display = "Low Risk"
 
-        # Get Available Actions from Global Map
-        available_group_actions = action_map.get(risk_label_for_actions, [])
-        actions_list_str = "\n".join([f"- {a}" for a in available_group_actions])
-        
-        # Re-construct context string (reusing logic from Chat above for consistency)
-        student_full_profile_str = f"""=== STUDENT PROFILE ===
-Student ID: {selected_student_index}
-Risk Level: {risk_label_display} ({dropout_prob:.1%})
-
-Course: {d_course}
-Application Mode: {d_app_mode}
-Age at Enrollment: {v_age}
-Tuition Status: {v_t_status}
-
-1st Semester:
-- Average Grade: {v_g1}/20
-- Lectures Enrolled: {v_e1}
-- Lectures Passed: {v_a1}
-
-2nd Semester:
-- Average Grade: {v_g2}/20
-- Lectures Enrolled: {v_e2}
-- Lectures Passed: {v_a2}
-
-=== KEY RISK/PROTECTIVE FACTORS (SHAP) ===
-"""
-        for f, v in top_features[:5]:
-             direction = "↑ increases risk" if v > 0 else "↓ decreases risk"
-             student_full_profile_str += f"- {f}: {v:.3f} ({direction})\n"
-
-        
-        with int_col1:
-            if st.button("Generate Email Draft", key=f"email_btn_{selected_student_index}"):
-                with st.spinner("Drafting email..."):
-                    email_prompt = [
-                        {"role": "system", "content": "You are an expert university counselor. Draft a professional, empathetic email to invite this student to a support meeting. Be warm but concise. Include a suggested meeting time placeholder. Use the specific student data (Course, Grades) to make it personal and relevant."},
-                        {"role": "user", "content": f"Draft an outreach email for this student based on their specific profile:\n\n{student_full_profile_str}"}
-                    ]
-                    email_draft = get_chat_response(email_prompt)
-                    st.session_state[f"email_draft_{selected_student_index}"] = email_draft
-        
-        with int_col2:
-            if st.button("Generate Action Plan", key=f"plan_btn_{selected_student_index}"):
-                with st.spinner("Creating action plan..."):
-                    plan_prompt = [
-                        {"role": "system", "content": f"""You are an expert academic advisor. Create a concise 3-step intervention action plan for a counselor.
-                        
-IMPORTANT INSTRUCTIONS:
-1. Review the 'Available Group Interventions' list provided below.
-2. If appropriate, Incorporate 1 or 2 specific actions from that list into your plan.
-3. Make the actions specific to the student's situation (e.g. if grades are low, mention specific support).
-4. Be actionable and direct.
-
-AVAILABLE GROUP INTERVENTIONS ({risk_label_display}):
-{actions_list_str}
-"""},
-                        {"role": "user", "content": f"Create an intervention plan for this student:\n\n{student_full_profile_str}"}
-                    ]
-                    action_plan = get_chat_response(plan_prompt)
-                    st.session_state[f"action_plan_{selected_student_index}"] = action_plan
-        
-        # Display generated content
-        email_key = f"email_draft_{selected_student_index}"
-        plan_key = f"action_plan_{selected_student_index}"
-        
-        if email_key in st.session_state:
-            with st.expander("📧 Email Draft", expanded=True):
-                st.markdown(st.session_state[email_key])
-                st.button("📋 Copy to Clipboard", key=f"copy_email_{selected_student_index}", help="Use Ctrl+C after selecting text")
-        
-        if plan_key in st.session_state:
-            with st.expander("📋 Action Plan", expanded=True):
-                st.markdown(st.session_state[plan_key])
         
 
 
