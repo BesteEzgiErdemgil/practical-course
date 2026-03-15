@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 
 echo ==============================================
-echo   Student Success Dashboard Launcher
+echo   Student Success Dashboard v2 (5-Fold Model)
 echo ==============================================
 
 REM Check if python is available
@@ -21,9 +21,9 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [2/2] Launching Dashboard...
+echo [2/2] Launching Dashboard v2...
 echo.
-python -m streamlit run predictive_model/dashboard.py
+python -m streamlit run src/final_dashboard.py
 
 if %errorlevel% neq 0 (
     echo.
