@@ -56,7 +56,7 @@ We built a predictive system that not only flags "who" is at risk but explains *
 
 ---
 
-## 📊 Data Analysis & Exploration
+## Data Analysis & Exploration
 
 Before building the predictive model, we conducted extensive Exploratory Data Analysis (EDA) and statistical testing to understand the factors driving student success:
 
@@ -119,6 +119,21 @@ To run this project locally, follow these steps:
    streamlit run src/final_dashboard.py
    ```
 
+## Visual Documentation
+
+### Dashboard Overview
+*High-level view of student risk metrics and group-level interventions.*
+![Dashboard Overview](PASTE_LINK_HERE)
+
+### Student Analysis & GenAI Support
+*Detailed student profile featuring SHAP-based risk explanations and an interactive AI assistant.*
+![Student Analysis](PASTE_LINK_HERE)
+
+### What-If Simulation & Results
+*Dynamic simulation of student scenarios to predict how specific changes impact dropout risk.*
+![What-If Simulation](PASTE_LINK_HERE)
+
+---
 
 ## Data Source
 
