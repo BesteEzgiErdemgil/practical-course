@@ -123,15 +123,18 @@ To run this project locally, follow these steps:
 
 ### Dashboard Overview
 *High-level view of student risk metrics and group-level interventions.*
-![Dashboard Overview](PASTE_LINK_HERE)
+<img width="2830" height="1482" alt="dashboard1" src="https://github.com/user-attachments/assets/4c7729ae-d4a6-4061-984c-197956a0d879" />
+<img width="2062" height="906" alt="dashboard3" src="https://github.com/user-attachments/assets/6e40d649-212f-412f-9110-686ef136274d" />
 
 ### Student Analysis & GenAI Support
 *Detailed student profile featuring SHAP-based risk explanations and an interactive AI assistant.*
-![Student Analysis](PASTE_LINK_HERE)
+<img width="1764" height="1096" alt="dashboard 2" src="https://github.com/user-attachments/assets/cc1e6d02-78c7-4d13-9ed5-156170c0f7b2" />
+<img width="1168" height="1256" alt="dashboard4" src="https://github.com/user-attachments/assets/65d8ff09-7ca9-41d0-b053-0e95daa4b366" />
 
 ### What-If Simulation & Results
 *Dynamic simulation of student scenarios to predict how specific changes impact dropout risk.*
-![What-If Simulation](PASTE_LINK_HERE)
+<img width="944" height="1004" alt="dashboard5" src="https://github.com/user-attachments/assets/5cf204a3-d4df-4637-876e-26d0d2c5232e" />
+<img width="1050" height="1108" alt="dashboard6" src="https://github.com/user-attachments/assets/851d50f7-018d-44c9-957e-fc8dd8892221" />
 
 ---
 
