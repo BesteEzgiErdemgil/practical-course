@@ -1,5 +1,5 @@
-# Student Success & Support Dashboard
-> **From Prediction to Prevention: Empowering Counselors with Explainable AI**
+# Student Success AI Copilot 
+> **Explainable AI Dashboard for Early Risk Detection & Intervention**
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io/)
